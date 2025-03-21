@@ -1,3 +1,4 @@
+local Filesystem = gTerminal.Filesystem
 local GNet = gTerminal.GNet
 local OS = OS;
 
@@ -6,9 +7,19 @@ include("gterminal/base_commands.lua")
 local gnet_commands = table.Copy(GNet.commands.shared)
 table.Merge(gnet_commands, GNet.commands.server)
 OS:NewCommand("gnet", function(client, entity, arguments)
-	if entity.cur_dir == nil then
+	if !entity.cur_dir then
 		Filesystem.Initialize(entity)
-		entity.destructor["fs"] = function(ent) ent.files = nil end
+		entity.destructor["fs"] = function(ent)
+			if entity.Disk then
+				local disk = ents.Create( "sent_disk" )
+				disk:SetPos( entity:LocalToWorld(Vector(0,0,25)) )
+				disk:SetNameD(entity.files["F:\\"]._dname)
+				disk:SetData(entity.files["F:\\"])
+				disk:SetOwner(entity.DiskO)
+				disk:Spawn()
+			end
+			ent.files = nil
+		end
 	end
 	if entity.name == nil then
 		entity.name = entity.name or "Server" .. tostring(entity:EntIndex());

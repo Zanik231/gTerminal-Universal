@@ -1,7 +1,6 @@
 local gTerminal = gTerminal;
 local Periph = gTerminal.Periph
 local Filesystem = gTerminal.Filesystem
-local GNet = gTerminal.GNet
 local timer = timer;
 local OS = OS;
 
