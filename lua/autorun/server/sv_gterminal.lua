@@ -4,6 +4,7 @@ AddCSLuaFile("gterminal/cl_init.lua");
 CreateConVar("gterminal_default_os", "default", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Os for all gterminal computers");
 CreateConVar("gterminal_default_os_root", "root_os", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Os for root computer \"sent_computerzanik_root\"");
 CreateConVar("gterminal_command_prefix", ":", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Command prefix for all gterminal computers");
+CreateConVar("gterminal_allow_user_execute", "1", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Allow users to execute commands on non-root_os");
 gameevent.Listen( "server_cvar" )
 hook.Add( "server_cvar", "server_cvar_example", function( data )
 	local cvarname = data.cvarname
@@ -29,6 +30,15 @@ hook.Add( "server_cvar", "server_cvar_example", function( data )
         end
         if (!table.HasValue(tab1, data.cvarvalue)) then
             GetConVar("gterminal_default_os_root"):SetString("root_os")
+        end
+    elseif (cvarname == "gterminal_allow_user_execute") then
+        local a = tonumber(data.cvarvalue)
+        if (a != nil) then
+            if (a > 0) then
+                GetConVar("gterminal_allow_user_execute"):SetString("1")
+            else
+                GetConVar("gterminal_allow_user_execute"):SetString("0")
+            end
         end
     end
 end )

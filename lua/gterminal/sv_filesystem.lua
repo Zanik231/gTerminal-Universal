@@ -298,6 +298,10 @@ Filesystem.commands = {
 	},
 	["exec"] = {
 		func = function(cl, ent, args)
+			if !GetConVar("gterminal_allow_user_execute"):GetBool() and ent.os != "root_os" then
+				gTerminal:Broadcast(ent, "Execute on not root_os is not allowed!")
+				return
+			end
 			if string.sub(args[2], #args[2] - 3, #args[2]) != ".lua" then
 				gTerminal:Broadcast(ent, "Not lua file")
 				return
