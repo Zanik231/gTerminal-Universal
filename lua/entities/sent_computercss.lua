@@ -16,8 +16,7 @@ AddCSLuaFile()
     
 	function ENT:SpawnFunction(ply, trace, client)
         if !IsMounted("cstrike") then
-            ply:PrintMessage( HUD_PRINTTALK, "Server don't have CSS content!" )
-            return false;
+            ply:PrintMessage( HUD_PRINTTALK, "You need CSS content!" )
         end
 		if (!trace.Hit) then
 			return false;
