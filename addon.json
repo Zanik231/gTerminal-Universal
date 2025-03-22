@@ -1,7 +1,7 @@
 {
 	"title"		:	"gTerminal Universal",
 	"type"		:	"tool",
-	"tags"		:	[ "build", "roleplay"],
+	"tags"		:	[ "build", "roleplay", "realism"],
 	"ignore"	:
 	[
 		"*.psd",
