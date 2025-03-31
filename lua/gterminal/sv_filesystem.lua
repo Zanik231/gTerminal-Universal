@@ -146,7 +146,6 @@ Filesystem.commands = {
 	},
 	["cd"] = {
 		func = function(cl, ent, args)
-			local n_dir = ent.cur_dir
 			if args[2][1] == "/" or args[2][1] == "\\" then
 				args[2] = string.sub(args[2], 2,#args[2])
 			end
@@ -336,6 +335,7 @@ function Filesystem.ChangeDisk(ent, name)
 	if !ent.files[name] then gTerminal:Broadcast(ent, "Disk is not exists!", GT_COL_ERR) return false end
 
 	ent.cur_dir = ent.files[name]
+	return true
 end
 
 function Filesystem.CreateDir(ent, name)
@@ -355,9 +355,14 @@ function Filesystem.CreateDir(ent, name)
 end
 
 function Filesystem.ChangeDir(ent, name)
-    if name == ".." then
+    if !name then
+		ent.cur_dir = ent.files["C:\\"]
+		return true
+	end
+	
+	if name == ".." then
         ent.cur_dir = ent.cur_dir._parent or ent.cur_dir
-        return
+        return true
     end
 
 	if !ent.cur_dir[name] then gTerminal:Broadcast(ent, "Directory is not exists!", GT_COL_ERR) return false end
@@ -365,6 +370,7 @@ function Filesystem.ChangeDir(ent, name)
 	if !name or table.HasValue(ent.bad_words, name) then gTerminal:Broadcast(ent, "Invalid directory name!", GT_COL_ERR) return false end
 
     ent.cur_dir = ent.cur_dir[name]
+	return true
 end
 
 
@@ -406,6 +412,22 @@ function Filesystem.CreateFile(ent, name, content, replace)
 		end
 	else
 		ent.cur_dir[name] = content
+		return true
+	end
+end
+
+function Filesystem.GetFileContent(ent, name)
+    local cur_dir = ent.cur_dir
+
+    if !name or table.HasValue(ent.bad_words, name) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+	if !cur_dir[name] then gTerminal:Broadcast(ent, "File is not exists!", GT_COL_ERR) return end
+	if type(cur_dir[name]) == "table" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
+
+    return cur_dir[name]
+end
+
+function Filesystem.isFile(ent, name)
+	if type(ent.cur_dir[name]) == "string" then  
 		return true
 	end
 end
