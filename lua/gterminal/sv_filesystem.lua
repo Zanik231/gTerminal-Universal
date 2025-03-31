@@ -146,6 +146,7 @@ Filesystem.commands = {
 	},
 	["cd"] = {
 		func = function(cl, ent, args)
+			local n_dir = ent.cur_dir
 			if args[2][1] == "/" or args[2][1] == "\\" then
 				args[2] = string.sub(args[2], 2,#args[2])
 			end
