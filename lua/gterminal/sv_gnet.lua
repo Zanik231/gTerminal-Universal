@@ -66,13 +66,14 @@ GNet.commands = {
         },
         ["mf"] = {
             func = function(cl, ent, args)
-                local id, file = args[2], Filesystem.GetFile(ent, args[3])
-                
+                local id, name, content = args[2], args[3], Filesystem.GetFileContent(ent, args[3])
+
+                if !content then return end
                 if !ent.gnet_client then gTerminal:Broadcast(ent, "You aren't connected to a network!", GT_COL_ERR) return end
                 if !id then gTerminal:Broadcast(ent, "Invalid UserID!", GT_COL_ERR) return end
-                if !file then return end
+                
 
-                GNet.SendFile(ent, ent.gnet_client, id, file)
+                GNet.SendFile(ent, ent.gnet_client, id, name, content)
             end,
             help = "Send file",
             add_help = " <id> <filename>"
@@ -323,7 +324,7 @@ function GNet.SendMessage(sender, gnet, id, msg)
     end
 end
 
-function GNet.SendFile(sender, gnet, id, file)
+function GNet.SendFile(sender, gnet, id, file_name, file_content)
     local sender_id = sender:EntIndex()
     local ent_client = Entity(sender_id)
     local ent_name = ent_client.name
@@ -335,7 +336,7 @@ function GNet.SendFile(sender, gnet, id, file)
 
 
     user.gnet_file_request = true
-    gTerminal:Broadcast(user, '[GNET] Would you like to accept file "' .. file._name .. '" from ' .. sender_id .. " - " .. ent_name .. "? (Y/N)", GT_COL_INFO)
+    gTerminal:Broadcast(user, '[GNET] Would you like to accept file "' .. file_name .. '" from ' .. sender_id .. " - " .. ent_name .. "? (Y/N)", GT_COL_INFO)
     timer.Create("GNet.File.Request." .. id, 60, 1, function()
         if IsValid(user) and user.gnet_file_request then
             gTerminal:Broadcast(user, "[GNET] File request from " .. sender_id .. " - " .. ent_name .. " timed out...", GT_COL_INFO)
@@ -347,19 +348,23 @@ function GNet.SendFile(sender, gnet, id, file)
 
     gTerminal:GetInput(user, function(cl, args)
         if (args[1] and args[1]:lower() == "y") then
+            Filesystem.ChangeDir(user)
+            local downloads_dir = "Downloads"
+
+            if Filesystem.isFile(user, downloads_dir) then
+                gTerminal:Broadcast(user, 'Removing "' .. downloads_dir .. '" file.', GT_COL_WRN) 
+                user.cur_dir[downloads_dir] = nil
+            end
+            if !user.cur_dir[downloads_dir] then
+                Filesystem.CreateDir(user, downloads_dir)
+                gTerminal:Broadcast(user, 'Creating "' .. downloads_dir .. '" directory.', GT_COL_INFO)
+            end
+            
+            Filesystem.ChangeDir(user, downloads_dir)
+            user.cur_dir[file_name] = file_content
+            Filesystem.ChangeDir(user)
             gTerminal:Broadcast(user, "[GNET] Request from " .. sender_id .. " - " .. ent_name .. " accepted!", GT_COL_INFO)
             gTerminal:Broadcast(sender, "[GNET] Request to " .. id .. " - " .. user_name .. " accepted!", GT_COL_INFO)
-
-
-            Filesystem.ChangeDir(user)
-
-            if !Filesystem.GetFileSO(user, "Downloads") then
-                Filesystem.CreateDir(user, "Downloads")
-            end
-
-            Filesystem.ChangeDir(user, "Downloads")
-            Filesystem.CreateFileSO(user, file._name, file.content)
-            Filesystem.ChangeDir(user)
         else
             gTerminal:Broadcast(user, "[GNET] Request from " .. sender_id .. " - " .. ent_name .. " denied!", GT_COL_INFO)
             gTerminal:Broadcast(sender, "[GNET] Request to " .. id .. " - " .. user_name .. " denied!", GT_COL_INFO)
