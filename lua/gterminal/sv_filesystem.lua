@@ -2,6 +2,7 @@ local Filesystem = Filesystem or {}
 local gTerminal = gTerminal;
 
 
+util.AddNetworkString("gTerminal.LuaPadEditor.Open")
 util.AddNetworkString("gTerminal.Editor.Open")
 util.AddNetworkString("gTerminal.Editor.Save")
 
@@ -22,7 +23,7 @@ Filesystem.commands = {
 	},
 	["disk_cd"] = {
 		func = function(cl, ent, args)
-			if !args[2] then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+			if !args[2] then gTerminal:Broadcast(ent, "Invalid disk name!", GT_COL_ERR) return end
 			if string.find(args[2], "/") then
 				string.Replace(args[2], "/", "\\")
 			end
@@ -76,7 +77,7 @@ Filesystem.commands = {
 				entity.Disk = nil
 				if entity.cur_disk == "F:\\" then
 					entity.cur_disk = "C:\\"
-					entity.cur_dir = ent.files["C:\\"]
+					entity.cur_dir = entity.files["C:\\"]
 				end
 				entity.files["F:\\"] = nil
 				gTerminal:Broadcast(entity, "The disk is disconnected");
@@ -86,6 +87,47 @@ Filesystem.commands = {
 		end,
 		help = "Eject disk",
 		add_help = "",
+	},
+	["disk_ad"] = {
+		func = function(cl, entity, args)
+			if string.find(args[3], "/") then
+				string.Replace(args[3], "/", "\\")
+			end
+			if string.find(args[3], "\\") then
+				if !entity.files[string.upper(args[3])] then gTerminal:Broadcast(entity, "Disk is not exists!", GT_COL_ERR) return end
+				args[3] = string.upper(args[3])
+				goto METKA
+			end
+			if !entity.files[string.upper(args[3]) .. "\\"] then gTerminal:Broadcast(entity, "Disk is not exists!", GT_COL_ERR) return end
+			args[3] = string.upper(args[3]) .. "\\"
+			::METKA::
+			if entity.cur_dir[args[2]] != nil then
+				entity.files[args[3]][args[2]] = entity.cur_dir[args[2]]
+			end
+		end,
+		help = "Add file to disk",
+		add_help = " <file> <disk>",
+	},
+	["disk_ren"] = {
+		func = function(cl, entity, args)
+			if string.find(args[2], "/") then
+				string.Replace(args[2], "/", "\\")
+			end
+			if string.find(args[2], "\\") then
+				if !entity.files[string.upper(args[2])] then gTerminal:Broadcast(entity, "Disk is not exists!", GT_COL_ERR) return end
+				args[2] = string.upper(args[2])
+				goto METKA
+			end
+			if !entity.files[string.upper(args[2]) .. "\\"] then gTerminal:Broadcast(entity, "Disk is not exists!", GT_COL_ERR) return end
+			args[2] = string.upper(args[2]) .. "\\"
+			if !args[3] then
+				gTerminal:Broadcast(entity, "There is no name argument!", GT_COL_ERR) return
+			end
+			::METKA::
+			entity.files[args[2]]._dname = table.concat(args, " ", 3)
+		end,
+		help = "Disk rename",
+		add_help = " <disk> <name>",
 	},
 	["md"] = {
 		func = function(cl, ent, args)
@@ -206,6 +248,54 @@ Filesystem.commands = {
 		help = "Create or edit file.",
 		add_help = " <filename>",
 	},
+	["move"] = {
+		func = function(cl, ent, args)
+			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+			if !args[3] or table.HasValue(ent.bad_words, args[3]) then gTerminal:Broadcast(ent, "Invalid directory name!", GT_COL_ERR) return end
+			if ent.cur_dir[args[2]] != nil then 
+				if type(ent.cur_dir[args[2]]) != "string" then gTerminal:Broadcast(ent, "Argument filename is directory!", GT_COL_ERR) return end
+			end
+			if ent.cur_dir[args[3]] != nil then 
+				if args[3] != ".." and type(ent.cur_dir[args[3]]) != "table" then gTerminal:Broadcast(ent, "Argument directory is file!", GT_COL_ERR) return end
+			end
+			if args[3] != ".." then
+				ent.cur_dir[args[3]][args[2]] = ent.cur_dir[args[2]]
+				ent.cur_dir[args[2]] = nil
+			else
+				if ent.cur_dir["_parent"] != nil then
+					ent.cur_dir["_parent"][args[2]] = ent.cur_dir[args[2]]
+					ent.cur_dir[args[2]] = nil
+				else
+					gTerminal:Broadcast(ent, "Previous directory is invalid or not exists!", GT_COL_ERR)
+				end
+			end
+		end,
+		help = "Move file to directory.",
+		add_help = " <filename> <directory>",
+	},
+		["copy"] = {
+		func = function(cl, ent, args)
+			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+			if !args[3] or table.HasValue(ent.bad_words, args[3]) then gTerminal:Broadcast(ent, "Invalid directory name!", GT_COL_ERR) return end
+			if ent.cur_dir[args[2]] != nil then 
+				if type(ent.cur_dir[args[2]]) != "string" then gTerminal:Broadcast(ent, "Argument filename is directory!", GT_COL_ERR) return end
+			end
+			if ent.cur_dir[args[3]] != nil then 
+				if args[3] != ".." and type(ent.cur_dir[args[3]]) != "table" then gTerminal:Broadcast(ent, "Argument directory is file!", GT_COL_ERR) return end
+			end
+			if args[3] != ".." then
+				ent.cur_dir[args[3]][args[2]] = ent.cur_dir[args[2]]
+			else
+				if ent.cur_dir["_parent"] != nil then
+					ent.cur_dir["_parent"][args[2]] = ent.cur_dir[args[2]]
+				else
+					gTerminal:Broadcast(ent, "Previous directory is invalid or not exists!", GT_COL_ERR)
+				end
+			end
+		end,
+		help = "Copy file to directory.",
+		add_help = " <filename> <directory>",
+	},
 	["ren"] = {
 		func = function(cl, ent, args)
 			if ent.os != "root_os" then
@@ -214,13 +304,12 @@ Filesystem.commands = {
 				end
 			end
 			if ent.cur_dir[args[3]] != nil then
-				if type(ent.cur_dir[args[3]]) == "table" then
-					ent.cur_dir[args[3]] = ent.cur_dir[args[2]]
-					ent.cur_dir[args[2]] = nil
-				else
-					ent.cur_dir[args[3]] = ent.cur_dir[args[2]]
-					ent.cur_dir[args[2]] = nil
-				end
+				gTerminal:Broadcast(ent, "File with newname already exists!", GT_COL_ERR)
+				return 
+			end
+			if ent.cur_dir[args[2]] != nil then
+				ent.cur_dir[args[3]] = ent.cur_dir[args[2]]
+				ent.cur_dir[args[2]] = nil
 			end
 		end,
 		help = "Rename file.",
@@ -298,26 +387,110 @@ Filesystem.commands = {
 	},
 	["exec"] = {
 		func = function(cl, ent, args)
-			if !GetConVar("gterminal_allow_user_execute"):GetBool() and ent.os != "root_os" then
+			if !GetConVar("gterminal_allow_user_execute"):GetBool() then
 				gTerminal:Broadcast(ent, "Execute on not root_os is not allowed!")
 				return
 			end
+			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+			if !ent.cur_dir[args[2]] then gTerminal:Broadcast(ent, "File is not exists!", GT_COL_ERR) return end
+			if type(ent.cur_dir[args[2]]) == "table" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
 			if string.sub(args[2], #args[2] - 3, #args[2]) != ".lua" then
 				gTerminal:Broadcast(ent, "Not lua file")
 				return
 			end
 
-			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
-			if !ent.cur_dir[args[2]] then gTerminal:Broadcast(ent, "File is not exists!", GT_COL_ERR) return end
-			if type(ent.cur_dir[args[2]]) == "table" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
+			collectgarbage()
 
 			ent.args = args
 			ent.cl = cl
-			RunString("local entity = Entity(" .. tostring(ent:EntIndex()) .. ") local client = entity.cl local arguments = entity.args local function sleep (dur) local n_thread = coroutine.running() timer.Simple(dur/1000, function() coroutine.resume(n_thread) end) coroutine.wait(dur/1000) end local thr = coroutine.create( function() " .. ent.cur_dir[args[2]] .. " end ) coroutine.resume(thr)")
-			ent.args = nil
-			ent.cl = nil
+			local lib = [[
+			local nativePrint = print
+			local client = entity.cl
+			local arguments = entity.args
+			entity.args = nil 
+			entity.cl = nil
+			local spk = table.HasValue(entity.periphery, "sent_pc_spk")
+			local function colorPrint(a,c) 
+				gTerminal:Broadcast(entity, a, c)
+			end
+			local print = function(a)
+				gTerminal:Broadcast(entity, a)
+			end
+			local function sleep (dur)
+				local n_thread = coroutine.running()
+				timer.Simple((dur+1)/1000, function() coroutine.resume(n_thread) end)
+				coroutine.wait(dur/1000)
+			end
+			local function input(a)
+				gTerminal:SetInputMode(entity, client, GT_INPUT_INP)
+				local n_thread = coroutine.running()
+				local b
+				gTerminal:GetInput(entity, function(cl,args) b = table.concat(args, " ", 1) gTerminal:SetInputMode(entity, client, GT_INPUT_NIL) coroutine.resume(n_thread) end)
+				coroutine.yield()
+				if !a then
+					print(b)
+				end
+				return b
+			end
+			local function getch(a)
+				gTerminal:SetInputMode(entity, client, GT_INPUT_CHAR)
+				local n_thread = coroutine.running()
+				local b
+				gTerminal:GetInput(entity, function(cl,args) b = table.concat(args, " ", 1) gTerminal:SetInputMode(entity, client, GT_INPUT_NIL) coroutine.resume(n_thread) end)
+				coroutine.yield()
+				if !a then
+					print(b)
+				end
+				return b 
+			end
+			local function beep(freq, dur)
+				if spk then
+					gTerminal:SPK_Beep(entity, freq, dur/1000)
+					sleep(dur)
+				end
+			end
+			local function beepAsync(freq, dur)
+				if spk then
+					gTerminal:SPK_Beep(entity, freq, dur/1000)
+				end
+			end
+			local function exit()
+				local n_thread = coroutine.running()
+				gTerminal:SetInputMode(entity, client, GT_INPUT_INP)
+				coroutine.yield()
+			end
+			]]
+			local a = CompileString("local entity = Entity(" .. tostring(ent:EntIndex()) .. ") " .. lib .." local thr = coroutine.create( function() gTerminal:SetInputMode(entity, client, GT_INPUT_NIL)" .. ent.cur_dir[args[2]] .. "gTerminal:SetInputMode(entity, client, GT_INPUT_INP) end ) coroutine.resume(thr)", args[2], false )
+			if isstring(a) then
+				gTerminal:Broadcast(ent, a, GT_COL_ERR)
+				ent.args = nil
+				ent.cl = nil
+			else
+				a()
+			end
 		end,
 		help = "Execute lua code from file.",
+		add_help = " <filename>",
+	},
+	["luapad"] = {
+		func = function(cl, ent, args)
+			if ent.os != "root_os" then
+				if string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
+					return
+				end
+			end
+			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
+			if ent.cur_dir[args[2]] != nil then 
+				if type(ent.cur_dir[args[2]]) != "string" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
+			end
+
+			net.Start("gTerminal.LuaPadEditor.Open")
+				net.WriteEntity(ent)
+				net.WriteString(args[2])
+				net.WriteString(ent.cur_dir[args[2]] or "")
+			net.Send(cl)
+		end,
+		help = "Create or edit file.",
 		add_help = " <filename>",
 	}
 }
@@ -367,48 +540,47 @@ function Filesystem.ChangeDir(ent, name)
     ent.cur_dir = ent.cur_dir[name]
 end
 
-
-function Filesystem.CreateFile(ent, name, content, replace)
-	if (tonumber(name) != nil) then gTerminal:Broadcast(entity,"Can't create file with a name consisting of numbers!", GT_COL_ERR) return false end
-	if !name or table.HasValue(ent.bad_words, name) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return false end
-	if utf8.len(name) > 20 then
-		gTerminal:Broadcast(ent, "Max chars in name must be not greater then 20!", GT_COL_ERR)
-		return
-	end
-	if string.match(name, "[\\/:*?\"<>|]") != nil then
-		gTerminal:Broadcast(ent, "Name contains unallowable chars!", GT_COL_ERR)
-		return
-	end
-	if replace != true then
-		replace = false
-	end
-	if ent.cur_dir[name] != nil and replace != true then
-		if string.find(name, ".") then
-			local name_n = string.Split(name, ".")
-			for i = 1, 100000 do
-				name_n[#name_n - 1] = name_n[#name_n - 1] .. "_copy(".. tostring(i) .. ")"
-				if ent.cur_dir[table.concat(name_n, ".")] != nil then 
-					continue
-				else
-					ent.cur_dir[table.concat(name_n, ".")] = content
-					return
-				end
-			end
-		else
-			for i = 1, 100000 do
-				if ent.cur_dir[name .. "_copy(".. tostring(i) .. ")"] then 
-					continue
-				else
-					ent.cur_dir[name .. "_copy(".. tostring(i) .. ")"] = content
-					return
-				end
-			end
-		end
-	else
-		ent.cur_dir[name] = content
-		return true
-	end
-end
+-- function Filesystem.CreateFile(ent, name, content, replace)
+-- 	if (tonumber(name) != nil) then gTerminal:Broadcast(entity,"Can't create file with a name consisting of numbers!", GT_COL_ERR) return false end
+-- 	if !name or table.HasValue(ent.bad_words, name) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return false end
+-- 	if utf8.len(name) > 20 then
+-- 		gTerminal:Broadcast(ent, "Max chars in name must be not greater then 20!", GT_COL_ERR)
+-- 		return
+-- 	end
+-- 	if string.match(name, "[\\/:*?\"<>|]") != nil then
+-- 		gTerminal:Broadcast(ent, "Name contains unallowable chars!", GT_COL_ERR)
+-- 		return
+-- 	end
+-- 	if replace != true then
+-- 		replace = false
+-- 	end
+-- 	if ent.cur_dir[name] != nil and replace != true then
+-- 		if string.find(name, ".") then
+-- 			local name_n = string.Split(name, ".")
+-- 			for i = 1, 100000 do
+-- 				name_n[#name_n - 1] = name_n[#name_n - 1] .. "_copy(".. tostring(i) .. ")"
+-- 				if ent.cur_dir[table.concat(name_n, ".")] != nil then 
+-- 					continue
+-- 				else
+-- 					ent.cur_dir[table.concat(name_n, ".")] = content
+-- 					return
+-- 				end
+-- 			end
+-- 		else
+-- 			for i = 1, 100000 do
+-- 				if ent.cur_dir[name .. "_copy(".. tostring(i) .. ")"] then 
+-- 					continue
+-- 				else
+-- 					ent.cur_dir[name .. "_copy(".. tostring(i) .. ")"] = content
+-- 					return
+-- 				end
+-- 			end
+-- 		end
+-- 	else
+-- 		ent.cur_dir[name] = content
+-- 		return true
+-- 	end
+-- end
 
 net.Receive("gTerminal.Editor.Save", function(len, ply)
 	local ent = net.ReadEntity()
@@ -457,12 +629,12 @@ function Filesystem.PlaySoundFile(ent, sfilecontent)
 			timer.Simple( delay, function() PlaySoundFileBase(arguments + 2) end )
 		else
 			net.Start("gT_EmitSound")
-			net.WriteUInt(ent:EntIndex(), 14)
+			net.WriteUInt(ent:EntIndex(), 13)
 			net.WriteUInt(tonumber(GTERM_table_numbers[arguments]), 15)
 			net.Broadcast()
 			timer.Simple( delay, function()
 				net.Start("gT_StopSound")
-				net.WriteUInt(ent:EntIndex(), 14)
+				net.WriteUInt(ent:EntIndex(), 13)
 				net.WriteUInt(tonumber(GTERM_table_numbers[arguments]), 15)
 				net.Broadcast()
 				PlaySoundFileBase(arguments + 2) 

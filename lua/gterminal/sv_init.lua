@@ -5,9 +5,13 @@ include("gterminal/sv_gnet.lua")
 
 AddCSLuaFile("sh_init.lua");
 AddCSLuaFile("gterminal/cl_editor.lua")
+AddCSLuaFile("gterminal/cl_luapad_editor.lua")
+
+util.AddNetworkString("gT_InputMode");
 
 util.AddNetworkString("gT_ActiveConsole");
 util.AddNetworkString("gT_EndConsole");
+util.AddNetworkString("gT_AddColorLine");
 util.AddNetworkString("gT_AddLine");
 util.AddNetworkString("gT_EndTyping");
 util.AddNetworkString("gT_ChangeBackgroundColor");
@@ -100,15 +104,14 @@ function gTerminal:SPK_Beep(entity, pitch, del)
 			pitch = 32766
 		end
 		net.Start("gT_EmitSound")
-		net.WriteUInt(entity:EntIndex(), 14)
+		net.WriteUInt(entity:EntIndex(), 13)
 		net.WriteUInt(pitch, 15)
 		net.Broadcast()
-		timer.Simple( delay, function()
+		timer.Simple( del, function()
 			net.Start("gT_StopSound")
-			net.WriteUInt(ent:EntIndex(), 14)
+			net.WriteUInt(entity:EntIndex(), 13)
 			net.WriteUInt(pitch, 15)
 			net.Broadcast()
-			PlaySoundFileBase(arguments + 2) 
 		end )
 	end
 end;
@@ -116,6 +119,22 @@ end;
 function gTerminal:GetInput(entity, Callback)
 	entity.acceptingInput = true;
 	entity.inputCallback = Callback;
+end;
+
+function gTerminal:GetInputMode(entity, ply)
+	net.Start("gT_InputMode");
+	net.WriteUInt(entity:EntIndex(), 13);
+	net.WriteUInt(entity.inputmode,2);
+	net.Send(ply);
+end;
+function gTerminal:SetInputMode(entity, ply, val)
+	entity.inputmode = val;
+	if ply != NULL or ply != nil then
+		net.Start("gT_InputMode");
+		net.WriteUInt(entity:EntIndex(), 13);
+		net.WriteUInt(val, 2);
+		net.Send(ply);
+	end
 end;
 
 net.Receive("gT_EndConsole", function(length, client)
@@ -164,13 +183,12 @@ net.Receive("gT_EndConsole", function(length, client)
 			end;
 
 			local Callback = entity.inputCallback;
+			entity.acceptingInput = nil;
+			entity.inputCallback = nil;
 
 			if (Callback and arguments) then
 				Callback(client, arguments);
 			end;
-
-			entity.acceptingInput = nil;
-			entity.inputCallback = nil;
 
 			return;
 		end;

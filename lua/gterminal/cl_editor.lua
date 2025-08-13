@@ -1,10 +1,20 @@
 local Editor = {}
 
-local scrw, scrh = ScrW(), ScrH()
+local skin = {}
+skin.PrintName 		= "gTerminalSkin";
+skin.Author			= "ZANIK";
+skin.DermaVersion	= 1;
+skin.Colours = {}
+skin.Colours.Button = {}
+skin.Colours.Button.Disabled = Color(255,255,255,255)
+skin.Colours.Button.Down = Color(138,138,138)
+skin.Colours.Button.Hover = Color(255,255,255,255)
+skin.Colours.Button.Normal = Color(255,255,255,255)
+derma.DefineSkin("gTerminalSkin","local skin", skin)
 
 local main = vgui.RegisterTable({
     Init = function(self)
-        self:SetSize(scrw * .65, scrh * .65)
+        self:SetSize(ScrW() * .65, ScrH() * .65)
         self:Center()
         self:MakePopup()
         self:SetTitle("Text Editor")
@@ -20,17 +30,8 @@ local main = vgui.RegisterTable({
         text_entry:SetTextColor(Color(255,255,255,255))
         text_entry:SetCursorColor(Color(255,255,255,255))
         text_entry:SetHighlightColor(Color(160,160,160,50))
+        text_entry:SetTabbingDisabled( true )
         self.text_entry = text_entry
-        local skin = {}
-        skin.PrintName 		= "gTerminalSkin";
-        skin.Author			= "ZANIK";
-        skin.DermaVersion	= 1;
-        skin.Colours = table.Copy(SKIN.Colours)
-        skin.Colours.Button.Disabled = Color(255,255,255,255)
-        skin.Colours.Button.Down = Color(138,138,138)
-        skin.Colours.Button.Hover = Color(255,255,255,255)
-        skin.Colours.Button.Normal = Color(255,255,255,255)
-        derma.DefineSkin("gTerminalSkin","local skin", skin)
         local save = self:Add("DButton")
         save:Dock(BOTTOM)
         save:SetPaintBackground(false)
@@ -40,7 +41,7 @@ local main = vgui.RegisterTable({
             if #text_entry:GetValue() > 32761 then
                 local error_frame = vgui.Create( "DFrame", self )
                 error_frame:Center()
-                error_frame:SetSize( scrw* .4, scrh * .25) 
+                error_frame:SetSize( ScrW()* .4, ScrH() * .25) 
                 error_frame:SetTitle( "Error!" ) 
                 error_frame:SetVisible( true ) 
                 error_frame:SetDraggable( false ) 
@@ -48,7 +49,7 @@ local main = vgui.RegisterTable({
                 self:SetMouseInputEnabled(false)
                 error_frame:MakePopup()
                 local error_label = vgui.Create( "DLabel", error_frame )
-                error_label:SetSize( scrw* .4, scrh * .25)
+                error_label:SetSize( ScrW()* .4, ScrH() * .25)
                 local x,y = error_label:GetPos()
                 error_label:SetPos(x + 35, y - 65)
                 error_label:SetFont("gT_ConsoleFont")

@@ -44,6 +44,7 @@ if SERVER then
 		self:SetOS(GetConVar("gterminal_default_os_root"):GetString());
 		self.periphery = {};
 		self.destructor = {};
+		self.inputmode = GT_INPUT_INP;
 		self.GTERM_beep_sound = {};
 		for i = -3, 3 do
 			table.insert(self.GTERM_beep_sound, CreateSound(self, GT_SPK_BEEP .. tostring(i) .. ".wav"))

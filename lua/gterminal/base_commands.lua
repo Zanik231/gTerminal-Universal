@@ -197,6 +197,7 @@ OS:NewCommand("pass", function(client, entity, arguments)
 end, "Sets the password for the terminal.");
 
 OS:NewCommand("x", function(client, entity)
+	gTerminal:SetInputMode(entity, client, GT_INPUT_NIL);
 	gTerminal:Broadcast( entity, "SHUTTING DOWN..." );
 
 	for k, v in pairs( player.GetAll() ) do

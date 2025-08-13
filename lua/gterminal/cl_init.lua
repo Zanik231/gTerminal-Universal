@@ -1,8 +1,9 @@
 include("sh_init.lua");
 include("gterminal/cl_editor.lua")
+include("gterminal/cl_luapad_editor.lua")
 
 gt_generated_snd = {}
-
+gt_computers_status = {}
 surface.CreateFont("gT_ConsoleFont", {
 	size = 28,
 	weight = 800,
@@ -14,6 +15,87 @@ local table = table;
 local gTerminal = gTerminal;
 local net = net;
 
+-- net.Receive("gT_AddLine", function(length)
+-- 	local index = net.ReadUInt(16);
+-- 	local text = net.ReadString();
+-- 	local colorType = net.ReadUInt(8);
+-- 	local position = net.ReadInt(16);
+-- 	local xposition = net.ReadInt(7)
+-- 	local only_color = net.ReadBool()
+
+-- 	local ent = Entity(index)
+-- 	local maxChars = ent.maxChars
+
+
+-- 	if ( !gTerminal[index] ) then
+-- 		gTerminal[index] = {};
+-- 	end;
+
+-- 	if only_color then
+-- 		if gTerminal[index][position] then
+-- 			gTerminal[index][position].color = colorType
+-- 		end
+-- 		return
+-- 	end
+
+-- 	if (!position or position == -1) then
+-- 		table.insert( gTerminal[index], {text = text, color = colorType} );
+-- 	else
+-- 		if xposition == 0 then
+-- 			gTerminal[index][position] = {text = text, color = colorType};
+-- 		else
+-- 			local str = gTerminal[index][position].text
+-- 			local nlen = maxChars + 1 - utf8.len(str)
+
+-- 			if nlen > 0 then
+-- 				for i = 0, nlen do
+-- 					str = str .. " "
+-- 				end
+-- 			end
+
+-- 			local t = {}
+
+-- 			if utf8.len(text) < 1 then
+-- 				for i = 1, utf8.len(str) do
+-- 					table.insert(t, string.sub(str, i, i))
+-- 				end
+-- 				table.remove(t, xposition)
+-- 				table.insert(t, xposition, text)
+
+-- 				local new_str = ""
+
+-- 				for k, v in pairs(t) do
+-- 					new_str = new_str .. t[k]
+-- 				end
+-- 				gTerminal[index][position] = {text = new_str, color = colorType}
+-- 			else
+-- 				local tl = utf8.len(text)
+-- 				if tl + xposition > maxChars + 1 then
+-- 					text = string.sub(text, 0, maxChars + 1 - xposition)
+-- 				end
+-- 				for i = 1, utf8.len(str) do
+-- 					table.insert(t, string.sub(str, i, i))
+-- 				end
+-- 				for i = 1, tl do
+-- 					table.remove(t, xposition)
+-- 				end
+-- 				for i = tl, 1, -1 do
+-- 					table.insert(t, xposition, string.sub(text, i, i))
+-- 				end
+
+-- 				local new_str = ""
+-- 				for k, v in pairs(t) do
+-- 					new_str = new_str .. t[k]
+-- 				end
+-- 				gTerminal[index][position] = {text = new_str, color = colorType}
+-- 			end
+-- 		end
+-- 	end;
+
+-- 	if (#gTerminal[index] > (ent.maxLines or 24) ) then
+-- 		table.remove(gTerminal[index], 1);
+-- 	end;
+-- end);
 net.Receive("gT_AddLine", function(length)
 	local index = net.ReadUInt(16);
 	local text = net.ReadString();
@@ -95,7 +177,6 @@ net.Receive("gT_AddLine", function(length)
 		table.remove(gTerminal[index], 1);
 	end;
 end);
-
 net.Receive("gT_ActiveConsole", function()
 	local index = net.ReadUInt(16);
 	local entity = Entity(index);
@@ -110,15 +191,21 @@ net.Receive("gT_ActiveConsole", function()
 
 		client.gT_TextEntry.OnTextChanged = function(textEntry)
 			local offset = 0;
-			local text = textEntry:GetValue();
+			local text
+			if entity.inputmode == GT_INPUT_NIL then
+				textEntry:SetText("")
+			end
+			text = textEntry:GetValue();
 			local maxChars = entity.maxChars or 50
-
 
 			if (utf8.len(text) > maxChars) then
 				offset = textEntry:GetCaretPos() - maxChars - 3;
 			end;
 
 			entity.consoleText = utf8.sub(text, offset);
+			if entity.inputmode == GT_INPUT_CHAR then
+				textEntry:OnEnter()
+			end
 		end;
 
 		client.gT_TextEntry.OnEnter = function(textEntry)
@@ -198,7 +285,7 @@ net.Receive("gT_GenerateSoundtbl", function()
 end);
 
 net.Receive("gT_EmitSound", function()
-	local entity = Entity(net.ReadUInt(14))
+	local entity = Entity(net.ReadUInt(13))
 	local frequency = net.ReadUInt(15)
 	if gt_generated_snd[frequency] == nil then
 		local function data( t )
@@ -212,9 +299,11 @@ net.Receive("gT_EmitSound", function()
 end);
 
 net.Receive("gT_StopSound", function()
-	local entity = Entity(net.ReadUInt(14))
+	local entity = Entity(net.ReadUInt(13))
 	local frequency = net.ReadUInt(15)
 	entity:StopSound("gt_pc_spk_" .. tostring(frequency))
 end);
-
+net.Receive("gT_InputMode", function()
+	Entity(net.ReadUInt(13)).inputmode = net.ReadUInt(2)
+end)
 MsgC(Color(0, 255, 0), "Loading gTerminalUNI!\n");

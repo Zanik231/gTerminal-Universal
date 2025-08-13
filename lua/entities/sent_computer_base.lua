@@ -44,6 +44,12 @@ if SERVER then
 		self:SetOS(GetConVar("gterminal_default_os"):GetString());
 		self.periphery = {};
 		self.destructor = {};
+		self.inputmode = GT_INPUT_INP;
+		self.GTERM_beep_sound = {};
+		for i = -3, 3 do
+			table.insert(self.GTERM_beep_sound, CreateSound(self, GT_SPK_BEEP .. tostring(i) .. ".wav"))
+			self.GTERM_beep_sound[i + 4]:SetSoundLevel(GT_SPK_LVL)
+		end
 		local physicsObject = self:GetPhysicsObject();
 
 		if ( IsValid(physicsObject) ) then
@@ -83,7 +89,8 @@ if SERVER then
 									gTerminal:Broadcast(self, "To list all commands, type ".. GetConVar("gterminal_command_prefix"):GetString() .."help");
 
 									gTerminal.os:Call(self, "Initialized");
-
+									
+									gTerminal:SetInputMode(self, self:GetUser(), GT_INPUT_INP)
 									self:SetActive(true);
 									self:SetWarmingUp(false);
 								end;
@@ -128,6 +135,8 @@ if SERVER then
 		if ( self:GetActive() ) then
 			if ( !IsValid( self:GetUser() ) ) then
 				self:SetUser(activator);
+				
+				gTerminal:GetInputMode(self, activator);
 
 				net.Start("gT_ActiveConsole");
 					net.WriteUInt(self:EntIndex(), 16);

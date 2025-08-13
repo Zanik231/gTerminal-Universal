@@ -39,7 +39,7 @@ if (SERVER) then
 		end
 	end
 	function ENT:Use(ply)
-		ply:PickupObject(self)
+	    ply:PickupObject( self )
 	end
 else
 	function ENT:Draw()

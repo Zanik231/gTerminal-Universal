@@ -19,6 +19,8 @@ if (SERVER) then
         self:SetMoveType(MOVETYPE_VPHYSICS)
         self:PhysicsInit(SOLID_VPHYSICS)
         self:SetSolid(SOLID_VPHYSICS)
+        self:SetUseType(SIMPLE_USE)
+		self:DrawShadow(true)
         local phys = self:GetPhysicsObject()
         if (IsValid(phys)) then
             phys:Wake()
@@ -27,7 +29,7 @@ if (SERVER) then
     end
 
 	function ENT:Use(ply)
-		ply:PickupObject(self)
+	    ply:PickupObject( self )
 	end
     
     function ENT:OnDuplicated( entTable )

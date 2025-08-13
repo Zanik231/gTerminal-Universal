@@ -1,14 +1,18 @@
 AddCSLuaFile()
 gTerminal = gTerminal or {};
 
-GT_COL_NIL = 0;
-GT_COL_MSG = 1;
-GT_COL_WRN = 2;
-GT_COL_ERR = 3;
-GT_COL_INFO = 4;
-GT_COL_INTL = 5;
-GT_COL_CMD = 6;
-GT_COL_SUCC = 7;
+GT_INPUT_INP = 0
+GT_INPUT_CHAR = 1
+GT_INPUT_NIL = 2
+
+GT_COL_NIL = 1;
+GT_COL_MSG = 2;
+GT_COL_WRN = 3;
+GT_COL_ERR = 4;
+GT_COL_INFO = 5;
+GT_COL_INTL = 6;
+GT_COL_CMD = 7;
+GT_COL_SUCC = 8;
 
 GT_colors = {
     [GT_COL_NIL] = Color(50, 50, 50),

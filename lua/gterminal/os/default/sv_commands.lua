@@ -69,6 +69,7 @@ OS:NewCommand("os", function(client, entity, arguments)
 				gTerminal:Broadcast(entity, "", nil, i);
 			end;
 
+			gTerminal:SetInputMode(entity, client, GT_INPUT_NIL)
 			gTerminal:Broadcast(entity, string.rep("=", entity.maxChars), GT_COL_MSG, 16);
 			gTerminal:Broadcast(entity, "Idle...", GT_COL_MSG, 18);
 			gTerminal:Broadcast(entity, "", GT_COL_MSG, 19);
@@ -179,8 +180,9 @@ OS:NewCommand("periph", function(client, entity, arguments)
 end, "Configuration of periphery.")
 
 OS:NewCommand("x", function(client, entity)
+	gTerminal:SetInputMode(entity, client, GT_INPUT_NIL);
 	gTerminal:Broadcast( entity, "SHUTTING DOWN..." );
-
+	
 	timer.Simple(math.Rand(2, 5), function()
 		if ( IsValid(entity) ) then
 			for i = 0, 25 do
