@@ -1,4 +1,4 @@
-local gTerminal = gTerminal;
+local gTerminal = gTerminal 
 local Periph = Periph or {}
 
 local periphery = {"sent_pc_spk", "TESTNULL"}

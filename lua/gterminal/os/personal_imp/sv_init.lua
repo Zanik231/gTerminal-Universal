@@ -1,12 +1,12 @@
-local OS = OS;
+local OS = OS 
 
 function OS:GetName()
-	return "VEX-DOS";
-end;
+	return "VEX-DOS" 
+end 
 
 function OS:GetUniqueID()
-	return "vex_dos";
-end;
+	return "vex_dos" 
+end 
 
 function OS:GetWarmUpText()
 	return {
@@ -17,7 +17,7 @@ function OS:GetWarmUpText()
 		"   \\_/  |___|_/\\_\\     |___/ \\___/|___/ ",
 		" The operating system for your personal needs.",
 		"   Build 160161",
-	};
-end;
+	} 
+end 
 
-include("sv_commands.lua");
+include("sv_commands.lua") 

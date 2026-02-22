@@ -42,11 +42,7 @@ if (SERVER) then
     end
 
     function ENT:GetNameD()
-      if self.name then
-        return self.name
-      else
-        return "NewDisket"
-      end
+        return self.name or "NewDisket"
     end
 
     function ENT:SetNameD(str)
@@ -62,18 +58,10 @@ if (SERVER) then
     end
 
     function ENT:GetData()
-        if self.Files then
-            return self.Files
-        else
-            return {}
-        end
+        return self.Files or {}
     end
 else
     function ENT:Draw()
         self:DrawModel()
-        local oang=self:GetAngles()
-        local opos= self:GetPos()
-        local ang=self:GetAngles()
-        local pos= self:GetPos()
     end
 end

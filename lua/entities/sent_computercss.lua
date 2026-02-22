@@ -15,24 +15,21 @@ AddCSLuaFile()
     ENT.maxLines = 24
     
 	function ENT:SpawnFunction(ply, trace, client)
-        if !IsMounted("cstrike") then
-            ply:PrintMessage( HUD_PRINTTALK, "Server don't have CSS content!")
-        end
 		if (!trace.Hit) then
-			return false;
-		end;
+			return false 
+		end 
 		local SpawnAng = ply:EyeAngles()
 		SpawnAng.p = 0
 		SpawnAng.y = SpawnAng.y + 180
-		local entity = ents.Create(self.ClassName);
-		entity:Initialize();
-		entity:SetPos( trace.HitPos );
+		local entity = ents.Create(self.ClassName)
+		entity:Initialize()
+		entity:SetPos( trace.HitPos )
 		entity:SetAngles( SpawnAng )
-		entity:Spawn();
-        entity:SetSkin(1);
-		entity:Activate();
-		return entity;
-	end;
+		entity:Spawn()
+        entity:SetSkin(1)
+		entity:Activate()
+		return entity 
+	end 
 
     function ENT:GetScreenPos()
         local angle = self:GetAngles()

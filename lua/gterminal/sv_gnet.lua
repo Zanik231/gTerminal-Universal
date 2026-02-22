@@ -5,7 +5,7 @@ GNet.commands = {
     shared = {
         ["ls"] = {
             func = function(cl, ent, args)
-                gTerminal:Broadcast(ent, "ACTIVE NETWORKS:");
+                gTerminal:Broadcast(ent, "ACTIVE NETWORKS:")
 
                 local index = 0
                 for name, gnet in pairs(GNet.list) do
@@ -14,8 +14,8 @@ GNet.commands = {
                     gTerminal:Broadcast(ent, "    " .. index .. ". " .. name .. (gnet._pass and " (PRIVATE)" or " (PUBLIC)"))
                 end
 
-                gTerminal:Broadcast(ent, "");
-                gTerminal:Broadcast(ent, "    Found " .. index .. " active network(s).");
+                gTerminal:Broadcast(ent, "")
+                gTerminal:Broadcast(ent, "    Found " .. index .. " active network(s).")
             end,
             help = "List all networks",
             add_help = ""
@@ -343,8 +343,8 @@ function GNet.SendFile(sender, gnet, id, file, filename)
         end
     end)
 
-    gTerminal:GetInput(user, function(cl, args)
-        if (args[1] and args[1]:lower() == "y") then
+    gTerminal:GetInput(user, function(cl, text)
+        if (string.lower(text) == "y") then
             gTerminal:Broadcast(user, "[GNET] Request from " .. sender_id .. " - " .. ent_name .. " accepted!", GT_COL_INFO)
             gTerminal:Broadcast(sender, "[GNET] Request to " .. id .. " - " .. user_name .. " accepted!", GT_COL_INFO)
 

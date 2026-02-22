@@ -1,5 +1,5 @@
 local Filesystem = Filesystem or {}
-local gTerminal = gTerminal;
+local gTerminal = gTerminal
 
 
 util.AddNetworkString("gTerminal.LuaPadEditor.Open")
@@ -47,7 +47,6 @@ Filesystem.commands = {
 					local dist = entity:GetPos():Distance(v:GetPos())
 					if (dist <= 64) then
 						entity.Disk = v
-						entity.DiskO = v:GetOwner()
 						v:Remove()
 						gTerminal:Broadcast(entity,"A floppy disk is inserted")
 						entity.files["F:\\"] = entity.Disk:GetData()
@@ -72,7 +71,6 @@ Filesystem.commands = {
 				disk:SetNameD(entity.files["F:\\"]._dname)
 				entity.files["F:\\"]._dname = nil
 				disk:SetData(entity.files["F:\\"])
-				disk:SetOwner(entity.DiskO)
 				disk:Spawn()
 				entity.Disk = nil
 				if entity.cur_disk == "F:\\" then
@@ -80,7 +78,7 @@ Filesystem.commands = {
 					entity.cur_dir = entity.files["C:\\"]
 				end
 				entity.files["F:\\"] = nil
-				gTerminal:Broadcast(entity, "The disk is disconnected");
+				gTerminal:Broadcast(entity, "The disk is disconnected")
 			else
 				gTerminal:Broadcast(entity,"No disk", GT_COL_ERR)
 			end
@@ -271,9 +269,9 @@ Filesystem.commands = {
 			end
 		end,
 		help = "Move file to directory.",
-		add_help = " <filename> <directory>",
+		add_help = " <file> <dir>",
 	},
-		["copy"] = {
+	["copy"] = {
 		func = function(cl, ent, args)
 			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
 			if !args[3] or table.HasValue(ent.bad_words, args[3]) then gTerminal:Broadcast(ent, "Invalid directory name!", GT_COL_ERR) return end
@@ -294,7 +292,7 @@ Filesystem.commands = {
 			end
 		end,
 		help = "Copy file to directory.",
-		add_help = " <filename> <directory>",
+		add_help = " <file> <dir>",
 	},
 	["ren"] = {
 		func = function(cl, ent, args)
@@ -337,6 +335,7 @@ Filesystem.commands = {
 					local function foo()
 						if utf8.len(utf8.sub(file.content, constnum * (ind - 1), #file.content)) > constnum then
 							ind = ind + 1
+							НЕ РАБОЧИЙ КОД!!!!!!!!!!!!!!!!!!!!
 							gTerminal:GetInput(ent, function() gTerminal:Broadcast(ent, utf8.sub(file.content, constnum * (ind - 1), ind * constnum)) foo() end)
 						else
 							gTerminal:Broadcast(ent, utf8.sub(file.content, constnum * (ind - 1), ind * constnum))
@@ -410,7 +409,7 @@ Filesystem.commands = {
 			entity.args = nil 
 			entity.cl = nil
 			local spk = table.HasValue(entity.periphery, "sent_pc_spk")
-			local function colorPrint(a,c) 
+			local function colorPrint(a,c)
 				gTerminal:Broadcast(entity, a, c)
 			end
 			local print = function(a)
@@ -422,10 +421,10 @@ Filesystem.commands = {
 				coroutine.wait(dur/1000)
 			end
 			local function input(a)
-				gTerminal:SetInputMode(entity, client, GT_INPUT_INP)
+				entity:SetInputMode(GT_INPUT_INP)
 				local n_thread = coroutine.running()
 				local b
-				gTerminal:GetInput(entity, function(cl,args) b = table.concat(args, " ", 1) gTerminal:SetInputMode(entity, client, GT_INPUT_NIL) coroutine.resume(n_thread) end)
+				gTerminal:GetInput(entity, function(cl,text) b = text entity:SetInputMode(GT_INPUT_NIL) coroutine.resume(n_thread) end)
 				coroutine.yield()
 				if !a then
 					print(b)
@@ -433,34 +432,30 @@ Filesystem.commands = {
 				return b
 			end
 			local function getch(a)
-				gTerminal:SetInputMode(entity, client, GT_INPUT_CHAR)
+				entity:SetInputMode(GT_INPUT_CHAR)
 				local n_thread = coroutine.running()
 				local b
-				gTerminal:GetInput(entity, function(cl,args) b = table.concat(args, " ", 1) gTerminal:SetInputMode(entity, client, GT_INPUT_NIL) coroutine.resume(n_thread) end)
+				gTerminal:GetInput(entity, function(cl,text) b = text entity:SetInputMode(GT_INPUT_NIL) coroutine.resume(n_thread) end)
 				coroutine.yield()
 				if !a then
 					print(b)
 				end
-				return b 
+				return b
 			end
 			local function beep(freq, dur)
-				if spk then
-					gTerminal:SPK_Beep(entity, freq, dur/1000)
-					sleep(dur)
-				end
+				gTerminal:SPK_Beep(entity, freq, dur/1000)
+				if spk then sleep(dur) end
 			end
 			local function beepAsync(freq, dur)
-				if spk then
-					gTerminal:SPK_Beep(entity, freq, dur/1000)
-				end
+				gTerminal:SPK_Beep(entity, freq, dur/1000)
 			end
 			local function exit()
 				local n_thread = coroutine.running()
-				gTerminal:SetInputMode(entity, client, GT_INPUT_INP)
+				entity:SetInputMode(GT_INPUT_INP)
 				coroutine.yield()
 			end
 			]]
-			local a = CompileString("local entity = Entity(" .. tostring(ent:EntIndex()) .. ") " .. lib .." local thr = coroutine.create( function() gTerminal:SetInputMode(entity, client, GT_INPUT_NIL)" .. ent.cur_dir[args[2]] .. "gTerminal:SetInputMode(entity, client, GT_INPUT_INP) end ) coroutine.resume(thr)", args[2], false )
+			local a = CompileString("local entity = Entity(" .. tostring(ent:EntIndex()) .. ") " .. lib .." local thr = coroutine.create( function() entity:SetInputMode(GT_INPUT_NIL)" .. ent.cur_dir[args[2]] .. "entity:SetInputMode(GT_INPUT_INP) end ) coroutine.resume(thr)", args[2], false )
 			if isstring(a) then
 				gTerminal:Broadcast(ent, a, GT_COL_ERR)
 				ent.args = nil
@@ -496,6 +491,16 @@ Filesystem.commands = {
 }
 
 function Filesystem.Initialize(ent)
+	entity.destructor["fs"] = function(ent)
+		if entity.Disk then
+			local disk = ents.Create( "sent_disk" )
+			disk:SetPos( entity:LocalToWorld(Vector(0,0,25)) )
+			disk:SetNameD(entity.files["F:\\"]._dname)
+			disk:SetData(entity.files["F:\\"])
+			disk:Spawn()
+		end
+		ent.files = nil
+	end
 	ent.files = {
 		["C:\\"] = {_dname = "System Disk"}
 	}
@@ -637,7 +642,7 @@ function Filesystem.PlaySoundFile(ent, sfilecontent)
 				net.WriteUInt(ent:EntIndex(), 13)
 				net.WriteUInt(tonumber(GTERM_table_numbers[arguments]), 15)
 				net.Broadcast()
-				PlaySoundFileBase(arguments + 2) 
+				PlaySoundFileBase(arguments + 2)
 			end )
 		end
 	end
@@ -645,8 +650,5 @@ function Filesystem.PlaySoundFile(ent, sfilecontent)
 		PlaySoundFileBase(1)
 	end )
 end
-
-Filesystem.names = table.GetKeys( Filesystem.commands )
-table.sort( Filesystem.names )
 
 gTerminal.Filesystem = Filesystem

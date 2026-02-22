@@ -1,9 +1,9 @@
 local Editor = {}
 
 local skin = {}
-skin.PrintName 		= "gTerminalSkin";
-skin.Author			= "ZANIK";
-skin.DermaVersion	= 1;
+skin.PrintName 		= "gTerminalSkin" 
+skin.Author			= "ZANIK" 
+skin.DermaVersion	= 1 
 skin.Colours = {}
 skin.Colours.Button = {}
 skin.Colours.Button.Disabled = Color(255,255,255,255)
@@ -41,11 +41,11 @@ local main = vgui.RegisterTable({
             if #text_entry:GetValue() > 32761 then
                 local error_frame = vgui.Create( "DFrame", self )
                 error_frame:Center()
-                error_frame:SetSize( ScrW()* .4, ScrH() * .25) 
-                error_frame:SetTitle( "Error!" ) 
-                error_frame:SetVisible( true ) 
-                error_frame:SetDraggable( false ) 
-                error_frame:ShowCloseButton( false ) 
+                error_frame:SetSize( ScrW()* .4, ScrH() * .25)
+                error_frame:SetTitle( "Error!" )
+                error_frame:SetVisible( true )
+                error_frame:SetDraggable( false )
+                error_frame:ShowCloseButton( false )
                 self:SetMouseInputEnabled(false)
                 error_frame:MakePopup()
                 local error_label = vgui.Create( "DLabel", error_frame )

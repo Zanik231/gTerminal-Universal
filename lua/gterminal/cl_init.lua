@@ -1,4 +1,4 @@
-include("sh_init.lua");
+include("sh_init.lua")
 include("gterminal/cl_editor.lua")
 include("gterminal/cl_luapad_editor.lua")
 
@@ -9,17 +9,17 @@ surface.CreateFont("gT_ConsoleFont", {
 	weight = 800,
 	antialias = true,
 	font = "Lucida Console"
-} );
+} )
 
-local table = table;
-local gTerminal = gTerminal;
-local net = net;
+local table = table 
+local gTerminal = gTerminal 
+local net = net 
 
 -- net.Receive("gT_AddLine", function(length)
--- 	local index = net.ReadUInt(16);
--- 	local text = net.ReadString();
--- 	local colorType = net.ReadUInt(8);
--- 	local position = net.ReadInt(16);
+-- 	local index = net.ReadUInt(16)
+-- 	local text = net.ReadString()
+-- 	local colorType = net.ReadUInt(8)
+-- 	local position = net.ReadInt(16)
 -- 	local xposition = net.ReadInt(7)
 -- 	local only_color = net.ReadBool()
 
@@ -28,8 +28,8 @@ local net = net;
 
 
 -- 	if ( !gTerminal[index] ) then
--- 		gTerminal[index] = {};
--- 	end;
+-- 		gTerminal[index] = {} 
+-- 	end 
 
 -- 	if only_color then
 -- 		if gTerminal[index][position] then
@@ -39,10 +39,10 @@ local net = net;
 -- 	end
 
 -- 	if (!position or position == -1) then
--- 		table.insert( gTerminal[index], {text = text, color = colorType} );
+-- 		table.insert( gTerminal[index], {text = text, color = colorType} )
 -- 	else
 -- 		if xposition == 0 then
--- 			gTerminal[index][position] = {text = text, color = colorType};
+-- 			gTerminal[index][position] = {text = text, color = colorType} 
 -- 		else
 -- 			local str = gTerminal[index][position].text
 -- 			local nlen = maxChars + 1 - utf8.len(str)
@@ -90,17 +90,17 @@ local net = net;
 -- 				gTerminal[index][position] = {text = new_str, color = colorType}
 -- 			end
 -- 		end
--- 	end;
+-- 	end 
 
 -- 	if (#gTerminal[index] > (ent.maxLines or 24) ) then
--- 		table.remove(gTerminal[index], 1);
--- 	end;
--- end);
+-- 		table.remove(gTerminal[index], 1)
+-- 	end 
+-- end)
 net.Receive("gT_AddLine", function(length)
-	local index = net.ReadUInt(16);
-	local text = net.ReadString();
-	local colorType = net.ReadUInt(8);
-	local position = net.ReadInt(16);
+	local index = net.ReadUInt(16)
+	local text = net.ReadString()
+	local colorType = net.ReadUInt(8)
+	local position = net.ReadInt(16)
 	local xposition = net.ReadInt(7)
 	local only_color = net.ReadBool()
 
@@ -109,8 +109,8 @@ net.Receive("gT_AddLine", function(length)
 
 
 	if ( !gTerminal[index] ) then
-		gTerminal[index] = {};
-	end;
+		gTerminal[index] = {} 
+	end 
 
 	if only_color then
 		if gTerminal[index][position] then
@@ -120,18 +120,18 @@ net.Receive("gT_AddLine", function(length)
 	end
 
 	if (!position or position == -1) then
-		table.insert( gTerminal[index], {text = text, color = colorType} );
+		table.insert( gTerminal[index], {text = text, color = colorType} )
 	else
 		if xposition == 0 then
-			gTerminal[index][position] = {text = text, color = colorType};
+			gTerminal[index][position] = {text = text, color = colorType} 
 		else
 			local str = gTerminal[index][position].text
 			local nlen = maxChars + 1 - utf8.len(str)
 
 			if nlen > 0 then
-				for i = 0, nlen do
-					str = str .. " "
-				end
+				-- for i = 0, nlen do
+					str = str .. string.rep(" ", nlen) // ЧЕК
+				-- end
 			end
 
 			local t = {}
@@ -171,87 +171,146 @@ net.Receive("gT_AddLine", function(length)
 				gTerminal[index][position] = {text = new_str, color = colorType}
 			end
 		end
-	end;
+	end 
 
 	if (#gTerminal[index] > (ent.maxLines or 24) ) then
-		table.remove(gTerminal[index], 1);
-	end;
-end);
+		table.remove(gTerminal[index], 1)
+	end 
+end)
+net.Receive("gT_StartAsyncKey", function ()
+	local ent = net.ReadEntity()
+	gTerminal[ent:EntIndex()] = {}
+end)
+net.Receive("gT_ClsScreen", function ()
+	local ent = net.ReadEntity()
+	gTerminal[ent:EntIndex()] = {}
+end)
 net.Receive("gT_ActiveConsole", function()
-	local index = net.ReadUInt(16);
-	local entity = Entity(index);
-	local client = LocalPlayer();
+	local index = net.ReadUInt(16)
+	local entity = Entity(index)
+	local client = LocalPlayer()
+	local ind = #entity.consoleStory + 1
 
 	if ( IsValid(entity) ) then
-		client.gT_Entity = entity;
-		client.gT_TextEntry = vgui.Create("DTextEntry");
-		client.gT_TextEntry:SetSize(0, 0);
-		client.gT_TextEntry:SetPos(0, 0);
-		client.gT_TextEntry:MakePopup();
+		client.gT_Entity = entity 
+		client.gT_TextEntry = vgui.Create("DTextEntry")
+		client.gT_TextEntry:SetSize(0, 0)
+		client.gT_TextEntry:SetPos(0, 0)
+		client.gT_TextEntry:MakePopup()
+
 
 		client.gT_TextEntry.OnTextChanged = function(textEntry)
-			local offset = 0;
+			local offset = 0
 			local text
-			if entity.inputmode == GT_INPUT_NIL then
+			if entity:GetInputMode() == GT_INPUT_NIL then
 				textEntry:SetText("")
+				entity.consoleText = ""
+				return
 			end
-			text = textEntry:GetValue();
+			text = textEntry:GetValue()
 			local maxChars = entity.maxChars or 50
 
 			if (utf8.len(text) > maxChars) then
-				offset = textEntry:GetCaretPos() - maxChars - 3;
-			end;
+				offset = textEntry:GetCaretPos() - maxChars - 3
+			end 
 
-			entity.consoleText = utf8.sub(text, offset);
-			if entity.inputmode == GT_INPUT_CHAR then
+			entity.consoleText = utf8.sub(text, offset)
+			if entity:GetInputMode() == GT_INPUT_CHAR then
 				textEntry:OnEnter()
 			end
-		end;
+		end 
 
 		client.gT_TextEntry.OnEnter = function(textEntry)
-			net.Start("gT_EndConsole");
-				net.WriteUInt(index, 16);
-				net.WriteString( tostring( textEntry:GetValue() ) );
-			net.SendToServer();
+			local text = tostring(textEntry:GetValue())
 
-			textEntry:SetText("");
-			textEntry:SetCaretPos(0);
+			net.Start("gT_EndConsole")
+				net.WriteUInt(index, 16)
+				net.WriteString( text )
+			net.SendToServer()
 
-			entity.consoleText = "";
-		end;
-	end;
-end);
+			if text != "" then
+				entity.consoleText = ""
+				textEntry:SetText("")
+				textEntry:SetCaretPos(0)
+				table.RemoveByValue(entity.consoleStory, text)
+				entity.consoleStory[#entity.consoleStory + 1] = text
+				if #entity.consoleStory > 10 then
+					table.remove(entity.consoleStory, 1)
+				end
+				ind = #entity.consoleStory + 1
+			end
+		end
+
+		client.gT_TextEntry.OnKeyCode = function( textEntry, keyCode )
+			if entity:GetInputMode() == GT_INPUT_INP and #entity.consoleStory != 0 then
+				if (keyCode == KEY_UP) then
+					local offset = 0
+					if ind > 1 then
+						ind = ind - 1
+					end
+
+					textEntry:SetText(entity.consoleStory[ind])
+					textEntry:SetCaretPos(#entity.consoleStory[ind])
+
+					local maxChars = entity.maxChars or 50
+
+					if (utf8.len(entity.consoleStory[ind]) > maxChars) then
+						offset = textEntry:GetCaretPos() - maxChars - 3
+					end 
+
+					entity.consoleText = utf8.sub(entity.consoleStory[ind], offset)
+				elseif (keyCode == KEY_DOWN and ind < #entity.consoleStory) then
+					local offset = 0
+					if ind < #entity.consoleStory then
+						ind = ind + 1
+					end
+
+					textEntry:SetText(entity.consoleStory[ind])
+					textEntry:SetCaretPos(#entity.consoleStory[ind])
+
+					local maxChars = entity.maxChars or 50
+
+					if (utf8.len(entity.consoleStory[ind]) > maxChars) then
+						offset = textEntry:GetCaretPos() - maxChars - 3
+					end 
+
+					entity.consoleText = utf8.sub(entity.consoleStory[ind], offset)
+				end
+			end
+		end 
+	end 
+end)
 
 net.Receive("gT_EndTyping", function(length)
-	local client = LocalPlayer();
+	local client = LocalPlayer()
 
 	if ( !IsValid(client.gT_TextEntry) ) then
-		return;
-	end;
+		return 
+	end 
 
-	client.gT_TextEntry:Remove();
+	client.gT_TextEntry:Remove()
 
 	if ( IsValid(client.gT_Entity) ) then
-		client.gT_Entity.consoleText = "";
-	end;
-end);
+		client.gT_Entity.consoleText = "" 
+	end 
+end)
 
 net.Receive("gT_ChangeBackgroundColor", function()
-	local index = net.ReadUInt(16);
-	local color = net.ReadColor();
+	local index = net.ReadUInt(16)
+	local color = net.ReadColor()
 
-	local ent = Entity(index);
+	local ent = Entity(index)
 	ent.BackgroundColor = color
-end);
+end)
 
 net.Receive("gT_ChangeForegroundColor", function()
-	local index = net.ReadUInt(16);
-	local color = net.ReadColor();
-	local pos = net.ReadUInt(3);
+	local index = net.ReadUInt(16)
+	local color = net.ReadColor()
+	local pos = net.ReadUInt(GT_colors_bit_count)
 
-	local ent = Entity(index);
+	local ent = Entity(index)
 	ent.colors[pos] = color
-end);
+end)
 
 net.Receive("gT_GenerateSound", function()
 	local frequency = net.ReadUInt(15)
@@ -266,7 +325,7 @@ net.Receive("gT_GenerateSound", function()
 	
 	sound.Generate( "gt_pc_spk_" .. tostring(frequency), samplerate, 0.1, data, 0)
 	gt_generated_snd[tostring(frequency) .. "_" .. tostring(time)] = true
-end);
+end)
 
 net.Receive("gT_GenerateSoundtbl", function()
 	local tabl = net.ReadTable()
@@ -282,7 +341,7 @@ net.Receive("gT_GenerateSoundtbl", function()
 		sound.Generate( "gt_pc_spk_" .. tostring(freq), 44100, 1, data, 0)
 		gt_generated_snd[tabl[i]] = true
 	end
-end);
+end)
 
 net.Receive("gT_EmitSound", function()
 	local entity = Entity(net.ReadUInt(13))
@@ -296,14 +355,14 @@ net.Receive("gT_EmitSound", function()
 		gt_generated_snd[tostring(frequency)] = true
 	end
 	entity:EmitSound("gt_pc_spk_" .. tostring(frequency), GT_SPK_LVL)
-end);
+end)
 
 net.Receive("gT_StopSound", function()
 	local entity = Entity(net.ReadUInt(13))
 	local frequency = net.ReadUInt(15)
 	entity:StopSound("gt_pc_spk_" .. tostring(frequency))
-end);
-net.Receive("gT_InputMode", function()
-	Entity(net.ReadUInt(13)).inputmode = net.ReadUInt(2)
 end)
-MsgC(Color(0, 255, 0), "Loading gTerminalUNI!\n");
+-- net.Receive("gT_InputMode", function()
+-- 	Entity(net.ReadUInt(13)).inputmode = net.ReadUInt(2)
+-- end)
+MsgC(Color(0, 255, 0), "gTerminal: Universal loaded!\n") 

@@ -1,10 +1,10 @@
 function OS:GetName()
-	return "VEX-SERVER";
-end;
+	return "VEX-SERVER" 
+end 
 
 function OS:GetUniqueID()
-	return "vex_server";
-end;
+	return "vex_server" 
+end 
 
 function OS:GetWarmUpText()
 	return {
@@ -14,13 +14,7 @@ function OS:GetWarmUpText()
 		"  \\_/  |___|_/\\_\\     |___/  \\__/   ",
 		" The operating system for server hosting.",
 		"   Build 160161SV"
-	};
-end;
+	} 
+end 
 
-function OS:ShutDown(entity)
-	if entity.gnet_host then
-		gTerminal.GNet.Remove(entity)
-	end;
-end;
-
-include("sv_commands.lua");
+include("sv_commands.lua") 

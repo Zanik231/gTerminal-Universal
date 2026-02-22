@@ -1,91 +1,100 @@
-include("sh_init.lua");
-include("sv_filesystem.lua");
+include("sh_init.lua")
+include("sv_filesystem.lua")
 include("sv_compcore.lua")
 include("gterminal/sv_gnet.lua")
 
-AddCSLuaFile("sh_init.lua");
+AddCSLuaFile("sh_init.lua")
 AddCSLuaFile("gterminal/cl_editor.lua")
 AddCSLuaFile("gterminal/cl_luapad_editor.lua")
 
-util.AddNetworkString("gT_InputMode");
+-- util.AddNetworkString("gT_InputMode")
 
-util.AddNetworkString("gT_ActiveConsole");
-util.AddNetworkString("gT_EndConsole");
-util.AddNetworkString("gT_AddColorLine");
-util.AddNetworkString("gT_AddLine");
-util.AddNetworkString("gT_EndTyping");
-util.AddNetworkString("gT_ChangeBackgroundColor");
-util.AddNetworkString("gT_ChangeForegroundColor");
+util.AddNetworkString("gT_ActiveConsole")
+util.AddNetworkString("gT_EndConsole")
+util.AddNetworkString("gT_AddColorLine")
+util.AddNetworkString("gT_AddLine")
+util.AddNetworkString("gT_ClsScreen")
+util.AddNetworkString("gT_EndTyping")
+util.AddNetworkString("gT_ChangeBackgroundColor")
+util.AddNetworkString("gT_ChangeForegroundColor")
 util.AddNetworkString("gT_GenerateSound")
 util.AddNetworkString("gT_GenerateSoundtbl")
 util.AddNetworkString("gT_EmitSound")
 util.AddNetworkString("gT_StopSound")
 
-gTerminal = gTerminal or {};
-gTerminal.os = gTerminal.os or {};
+gTerminal = gTerminal or {}
+gTerminal.os = gTerminal.os or {}
 
-local gTerminal = gTerminal;
-local net = net;
+local gTerminal = gTerminal
+local net = net
 
-function gTerminal.os:Call(entity, name, ...)
-	if ( IsValid(entity) ) then
-		local key = entity:GetOS();
-		local system = gTerminal.os[key];
+function gTerminal:ChangeForegroundColor(entity, color, color_index)
+	net.Start("gT_ChangeForegroundColor")
+	net.WriteUInt(entity:EntIndex(),16)
+	net.WriteColor(color)
+	net.WriteUInt(color_index, GT_colors_bit_count)
+	net.Broadcast()
+end
+function gTerminal:ChangeBackgroundColor(entity, color)
+	net.Start("gT_ChangeBackgroundColor")
+	net.WriteUInt(entity:EntIndex(),16)
+	net.WriteColor(color)
+	net.Broadcast()
+end
 
-		if (IsValid(entity) and system and system[name] and type( system[name] ) == "function") then
-			local success, value = pcall(system[name], system, entity, ...);
-
-			if (success) then
-				return value;
-			end;
-		end;
-	end;
-end;
+function gTerminal:ClearConsole(entity)
+	net.Start("gT_ClsScreen")
+	net.WriteEntity(entity)
+	net.Broadcast()
+end
 
 function gTerminal:Broadcast(entity, text, colorType, position, xposition, onlyColor)
 	if ( !IsValid(entity) ) then
-		return;
-	end;
+		return
+	end
+	if ( !entity:GetActive() ) then
+		return
+	end
 
-	if !onlyColor then onlyColor = false end 
+	if !onlyColor then onlyColor = false end
 	text = tostring(text)
 
-	local index = entity:EntIndex();
-	local output;
+	local index = entity:EntIndex()
+	local output
 	local maxChars = entity.maxChars or 50
 
 	if (utf8.len(text) > maxChars) then
-		output = {};
+		output = {}
 
-		local expected = math.floor(utf8.len(text) / maxChars);
+		local expected = math.floor(utf8.len(text) / maxChars)
 
 		for i = 0, expected do
-			output[i + 1] = utf8.sub(text, i * maxChars, (i * maxChars) + maxChars - 1);
-		end;
-	end;
+			output[i + 1] = utf8.sub(text, i * maxChars, (i * maxChars) + maxChars - 1)
+		end
+	end
 
 	if (output) then
 		for k, v in ipairs(output) do
-			net.Start("gT_AddLine");
-				net.WriteUInt(index, 16);
-				net.WriteString(v);
-				net.WriteUInt(colorType or GT_COL_MSG, 8);
+			net.Start("gT_AddLine")
+				net.WriteUInt(index, 16)
+				net.WriteString(v)
+				net.WriteUInt(colorType or GT_COL_MSG, 8)
 				net.WriteInt(position and position + (k - 1) or -1, 16)
 				net.WriteInt(xposition and xposition or 0, 7)
 				net.WriteBool(onlyColor)
-			net.Broadcast();
-		end;
+			net.Broadcast()
+		end
 	else
-		net.Start("gT_AddLine");
-			net.WriteUInt(index, 16);
-			net.WriteString(text);
-			net.WriteUInt(colorType or GT_COL_MSG, 8);
-			net.WriteInt(position or -1, 16);
+		net.Start("gT_AddLine")
+			net.WriteUInt(index, 16)
+			net.WriteString(text)
+			net.WriteUInt(colorType or GT_COL_MSG, 8)
+			net.WriteInt(position or -1, 16)
 			net.WriteInt(xposition and xposition or 0, 7)
 			net.WriteBool(onlyColor)
-		net.Broadcast();
-	end;
-end;
+		net.Broadcast()
+	end
+end
 
 function gTerminal:SPK_Beep(entity, pitch, del)
 	if(table.HasValue(entity.periphery, "sent_pc_spk")) then
@@ -114,155 +123,98 @@ function gTerminal:SPK_Beep(entity, pitch, del)
 			net.Broadcast()
 		end )
 	end
-end;
+end
 
 function gTerminal:GetInput(entity, Callback)
-	entity.acceptingInput = true;
-	entity.inputCallback = Callback;
-end;
-
-function gTerminal:GetInputMode(entity, ply)
-	net.Start("gT_InputMode");
-	net.WriteUInt(entity:EntIndex(), 13);
-	net.WriteUInt(entity.inputmode,2);
-	net.Send(ply);
-end;
-function gTerminal:SetInputMode(entity, ply, val)
-	entity.inputmode = val;
-	if ply != NULL or ply != nil then
-		net.Start("gT_InputMode");
-		net.WriteUInt(entity:EntIndex(), 13);
-		net.WriteUInt(val, 2);
-		net.Send(ply);
-	end
-end;
+	entity.acceptingInput = true
+	entity.inputCallback = Callback
+end
 
 net.Receive("gT_EndConsole", function(length, client)
-	local index = net.ReadUInt(16);
-	local entity = Entity(index);
-	local text = net.ReadString();
+	local index = net.ReadUInt(16)
+	local entity = Entity(index)
+	local text = net.ReadString()
 
 	if (IsValid(entity) and entity.GetUser and IsValid( entity:GetUser() ) and entity:GetUser() == client) then
-		if (text == "" or text == " ") then
-			entity:SetUser(nil);
+		if (text == "") then
+			entity:SetUser(nil)
 
-			net.Start("gT_EndTyping");
-			net.Send(client);
+			net.Start("gT_EndTyping")
+			net.Send(client)
 
-			return;
-		end;
-
+			return
+		end 
+		if entity.os == "custom_os" then
+			entity:InputHandler() // ДОДЕЛАТЬ!!!
+			return
+		end
 		if ( entity.password and !client["pass_authed_"..index] ) then
 			if (text == entity.password) then
-				client["pass_authed_"..index] = true;
-
-				gTerminal:Broadcast(entity, "Password accepted.");
-
-				return;
+				client["pass_authed_"..index] = true
+				gTerminal:Broadcast(entity, "Password accepted.")
 			else
-				gTerminal:Broadcast(entity, "Please enter your password:");
-
-				return;
-			end;
-		end;
+				gTerminal:Broadcast(entity, "Please enter your password:")
+				return
+			end
+		end
 
 		if (entity.acceptingInput) then
-			local quote = (string.sub(text, 1, 1) != "\"");
-			local arguments = {};
+			local Callback = entity.inputCallback
+			entity.acceptingInput = nil
+			entity.inputCallback = nil
 
-			for chunk in string.gmatch(text, "[^\"]+") do
-				quote = !quote;
+			Callback(client, text)
+			return 
+		end
+		local prefix = GetConVar("gterminal_command_prefix"):GetString()
+		local is_space_prefix = prefix == ""
 
-				if (quote) then
-					table.insert(arguments, chunk);
-				else
-					for chunk in string.gmatch(chunk, "[^ ]+") do
-						table.insert(arguments, chunk);
-					end;
-				end;
-			end;
-
-			local Callback = entity.inputCallback;
-			entity.acceptingInput = nil;
-			entity.inputCallback = nil;
-
-			if (Callback and arguments) then
-				Callback(client, arguments);
-			end;
-
-			return;
-		end;
-
-		if (string.sub(text, 1, 1) == GetConVar("gterminal_command_prefix"):GetString()) then
-			local system = gTerminal.os[ entity:GetOS() ];
+		if (string.sub(text, 1, 1) == prefix or is_space_prefix) then
+			local system = entity.os.commands
 
 			if (system) then
-				for k, v in pairs( system:GetCommands() ) do
-					local command = string.sub( string.lower(text), 2, string.len(string.Split(text, " ")[1]));
+				local str = string.Split(text, " ")
+				local command = string.sub( string.lower(text), is_space_prefix and 1 or 2, #str[1])
+				table.remove(str, 1)
+				if (system[command]) then
+					if (text) then
+						gTerminal:Broadcast(entity, text, GT_COL_CMD)
+					end
+					local success, value = pcall(system[command].Callback, client, entity, str, text)
+					if (value) then
+						gTerminal:Broadcast(entity, value, GT_COL_ERR)
+					end
+					return
+				end
 
-					if (k == command) then
-						local text2 = string.sub(text, string.len(command) + 2);
-						local quote = (string.sub(text2, 1, 1) != "\"");
-						local arguments = {};
-
-						for chunk in string.gmatch(text2, "[^\"]+") do
-							quote = !quote;
-
-							if (quote) then
-								table.insert(arguments, chunk);
-							else
-								for chunk in string.gmatch(chunk, "[^ ]+") do
-									table.insert(arguments, chunk);
-								end;
-							end;
-						end;
-
-						if (text) then
-							gTerminal:Broadcast(entity, text, GT_COL_CMD);
-						end
-
-						local success, value = pcall(v.Callback, client, entity, arguments);
-						if (value) then
-							gTerminal:Broadcast(entity, value, GT_COL_ERR);
-						end
-
-						return;
-					end;
-				end;
-
-				text = "Invalid command! ("..string.sub(text, 2)..")";
+				text = "Invalid command! ("..string.sub(text, is_space_prefix and 1 or 2)..")"
 			else
-				gTerminal:Broadcast(entity, "System error from user response!", GT_COL_INTL);
+				gTerminal:Broadcast(entity, "System error from user response!", GT_COL_INTL)
 
-				return;
-			end;
-		end;
+				return
+			end
+		end
 
+		local finalized = (entity.name or "User".."@"..entity:EntIndex()).." => "..tostring(text)
 
-		local finalized = "User".."@"..entity:EntIndex().." => "..tostring(text);
+		gTerminal:Broadcast(entity, finalized, GT_COL_NIL)
+	end 
+end)
 
-		gTerminal:Broadcast(entity, finalized, GT_COL_NIL);
-	end;
-end);
-
-local files, folders = file.Find("gterminal/os/*", "LUA");
+local files, folders = file.Find("gterminal/os/*", "LUA")
 
 for k, v in pairs(folders) do
-	OS = {};
-		OS.commands = {};
+	OS = {}
+		OS.commands = {}
 
 		function OS:NewCommand(name, Callback, help)
-			self.commands[name] = {Callback = Callback, help = help};
-		end;
+			self.commands[name] = {Callback = Callback, help = help}
+		end
 
-		function OS:GetCommands()
-			return self.commands;
-		end;
-		
-		include("os/"..v.."/sv_init.lua");
+		include("os/"..v.."/sv_init.lua")
 
-		gTerminal.os[ OS:GetUniqueID() ] = OS;
-	OS = nil;
-end;
+		gTerminal.os[ OS:GetUniqueID() ] = OS
+	OS = nil
+end 
 
-MsgC(Color(0, 255, 0), "Initialized gTerminalUNI!\n");
+MsgC(Color(0, 255, 0), "Initialized gTerminalUNI!\n")

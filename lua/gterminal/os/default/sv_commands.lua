@@ -1,81 +1,88 @@
-local gTerminal = gTerminal;
-local Periph = gTerminal.Periph
-local timer = timer;
-local OS = OS;
-
-OS:NewCommand("help", function(client, entity, arguments)
-	gTerminal:Broadcast(entity, "=============================");
-	gTerminal:Broadcast(entity, "  *Welcome to the TerminalUNI!");
-	gTerminal:Broadcast(entity, "  *Created by Zanik.");
-	gTerminal:Broadcast(entity, "  *Original by Chessnut.");
-	gTerminal:Broadcast(entity, "    COMMANDS:");
-
-	for k, v in SortedPairs( OS:GetCommands() ) do
-		gTerminal:Broadcast(entity, "     ".. GetConVar("gterminal_command_prefix"):GetString() ..k.." - "..v.help);
-	end;
-
-	gTerminal:Broadcast(entity, "=============================");
-end, "Provides a list of help.");
-
-OS:NewCommand("cls", function(client, entity)
-	for i = 0, 25 do
-		timer.Simple(i * 0.01, function()
-			if ( IsValid(entity) ) then
-				gTerminal:Broadcast(entity, "", MSG_COL_NIL, i);
-			end;
-		end);
-	end;
-end, "Clears the screen.");
+local gTerminal = gTerminal
+local timer = timer
+local OS = OS
+include("gterminal/default_commands.lua")
 
 OS:NewCommand("os", function(client, entity, arguments)
-	local command = arguments[1];
+	local command = arguments[1]
 
-	if (command == "install") then
-		local info = arguments[2];
+	if (command == "install" or command == "install_disk") then
+		local info = arguments[2]
+		local system = command == 'install_disk' and gTerminal.os['custom_os'] or gTerminal.os[info]
+		if command != "install_disk" then
+			if (!info) then
+				gTerminal:Broadcast(entity, "Invalid OS identifier!", GT_COL_ERR)
 
-		if (!info) then
-			gTerminal:Broadcast(entity, "Invalid OS identifier!", GT_COL_ERR);
+				return 
+			elseif (info == "default") then
+				gTerminal:Broadcast(entity, "Cannot use primary system!", GT_COL_ERR)
 
-			return;
-		elseif (info == "default") then
-			gTerminal:Broadcast(entity, "Cannot use primary system!", GT_COL_ERR);
+				return 
+			elseif (info == "root_os") then
+				gTerminal:Broadcast(entity, "Cannot use root system!", GT_COL_ERR)
 
-			return;
-		elseif (info == "root_os") then
-			gTerminal:Broadcast(entity, "Cannot use root system!", GT_COL_ERR);
+				return 
+			elseif (info == "custom_os") then
+				gTerminal:Broadcast(entity, "For custom system you need disk with os!", GT_COL_ERR)
+				gTerminal:Broadcast(entity, "Check command :os install_disk!", GT_COL_ERR)
 
-			return;
-		end;
+				return 
+			end 
 
 
-		local system = gTerminal.os[info];
+			if (!system) then
+				gTerminal:Broadcast(entity, "Couldn't find OS!", GT_COL_ERR)
 
-		if (!system) then
-			gTerminal:Broadcast(entity, "Couldn't find OS!", GT_COL_ERR);
+				return
+			end
+		else
+			if entity.Disk then
+				gTerminal:Broadcast(entity,"Eject disk first!", GT_COL_ERR)
+				return
+			end
+			for k, v in pairs(ents.FindByClass("sent_disk")) do
+				local dist = entity:GetPos():Distance(v:GetPos())
+				
+				if dist <= 64 and v:GetData()['os.lua'] then
+					gTerminal.Filesystem.Initialize(entity)
+					entity.Disk = v
+					v:Remove()
+					entity.files["C:\\"] = table.Copy(entity.Disk:GetData())
+					entity.files["C:\\"]._dname = "System Disk"
+					gTerminal:Broadcast(entity,"Disk has been founded!", GT_COL_SUCC)
+					
+					break
+				end
+			end
+			if !entity.Disk then gTerminal:Broadcast(entity, "Disk has not been founded!", GT_COL_ERR) return end
+		end
 
-			return;
-		end;
+		if GetConVar("gterminal_fast_install"):GetBool() then
+			gTerminal:Broadcast(entity, "Installation complete!", GT_COL_SUCC)
+			entity:SetInputMode(GT_INPUT_NIL)
+			timer.Simple(math.Rand(1, 2), function()
+				if ( IsValid(entity) ) then
+					entity:ShutDown()
+					entity.os = system
+				end
+			end)
+			return
+		end
 
-		entity.locked = true;
-
-		gTerminal:Broadcast(entity, "Preparing installation...", GT_COL_INTL);
+		gTerminal:Broadcast(entity, "Preparing installation...", GT_COL_INTL)
 
 		timer.Simple(1, function()
 			if ( !IsValid(entity) ) then
-				return;
-			end;
-
-			for i = 0, 25 do
-				gTerminal:Broadcast(entity, "", nil, i);
-			end;
-
-			gTerminal:SetInputMode(entity, client, GT_INPUT_NIL)
-			gTerminal:Broadcast(entity, string.rep("=", entity.maxChars), GT_COL_MSG, 16);
-			gTerminal:Broadcast(entity, "Idle...", GT_COL_MSG, 18);
-			gTerminal:Broadcast(entity, "", GT_COL_MSG, 19);
-			gTerminal:Broadcast(entity, "     [                         ] 0%", GT_COL_MSG, 20);
-			gTerminal:Broadcast(entity, "", GT_COL_MSG, 21);
-			gTerminal:Broadcast(entity, string.rep("=", entity.maxChars), GT_COL_MSG, 22);
+				return
+			end
+			gTerminal:ClearConsole(entity)
+			entity:SetInputMode(GT_INPUT_NIL)
+			gTerminal:Broadcast(entity, string.rep("=", entity.maxChars), GT_COL_MSG, 16)
+			gTerminal:Broadcast(entity, "Idle...", GT_COL_MSG, 18)
+			gTerminal:Broadcast(entity, "", GT_COL_MSG, 19)
+			gTerminal:Broadcast(entity, "     [                         ] 0%", GT_COL_MSG, 20)
+			gTerminal:Broadcast(entity, "", GT_COL_MSG, 21)
+			gTerminal:Broadcast(entity, string.rep("=", entity.maxChars), GT_COL_MSG, 22)
 
 			local messages = {
 				"Inspecting disk space.",
@@ -90,115 +97,59 @@ OS:NewCommand("os", function(client, entity, arguments)
 				"Setting up system profile.",
 				"Setting up commands.",
 				"Finalizing product."
-			};
+			}
 
-			local time = math.Rand(0.5, 1.5);
+			local time = math.Rand(0.5, 1.5)
 
 			for i = 1, 25 do
-				time = time + math.Rand(0.05, 0.25);
+				time = time + math.Rand(0.05, 0.25)
 
 				timer.Simple(time, function()
 					if ( IsValid(entity) ) then
-						local msgID = math.Clamp(i, 1, #messages);
+						local msgID = math.Clamp(i, 1, #messages)
 
-						gTerminal:Broadcast(entity, "     "..messages[msgID], GT_COL_MSG, 18);
-						gTerminal:Broadcast(entity, "     ["..string.rep("=", i)..string.rep(" ", 25 - i).."] "..( 100 * math.Round(i / 25, 2) ).."%", GT_COL_MSG, 20);
+						gTerminal:Broadcast(entity, "     "..messages[msgID], GT_COL_MSG, 18)
+						gTerminal:Broadcast(entity, "     ["..string.rep("=", i)..string.rep(" ", 25 - i).."] "..( 100 * math.Round(i / 25, 2) ).."%", GT_COL_MSG, 20)
 
 						if (i == 25) then
 							for i = 0, 25 do
 								if ( IsValid(entity) ) then
-									gTerminal:Broadcast(entity, "", nil, i);
-								end;
-							end;
+									gTerminal:Broadcast(entity, "", nil, i)
+								end
+							end
 
 							timer.Simple(math.Rand(1, 2), function()
 								if ( IsValid(entity) ) then
-									entity:SetOS(info);
-									entity:SetActive(false);
-									entity.locked = false;
-								end;
-							end);
-						end;
-					end;
-				end);
-			end;
-		end);
+									entity:ShutDown()
+									entity.os = system
+								end
+							end)
+						end
+					end
+				end)
+			end
+		end)
 	elseif (command == "list") then
-		local info = arguments[2];
+		local info = arguments[2]
 
-		gTerminal:Broadcast(entity, "Available OS Packages:");
+		gTerminal:Broadcast(entity, "Available OS Packages:")
 
-		local count = 0;
+		local count = 0
 
 		for k, v in SortedPairs(gTerminal.os) do
-			if (type(v) == "table" and v.GetName and v.GetUniqueID and v:GetUniqueID() != "default" and v:GetUniqueID() != "root_os") then
-				count = count + 1;
+			if (type(v) == "table" and v.GetName and v.GetUniqueID and v:GetUniqueID() != "default" and v:GetUniqueID() != "root_os" and v:GetUniqueID() != "custom_os") then
+				count = count + 1
 
-				gTerminal:Broadcast(entity, "     "..count..". "..v:GetUniqueID().." ("..v:GetName()..")");
-			end;
-		end;
+				gTerminal:Broadcast(entity, "     "..count..". "..v:GetUniqueID().." ("..v:GetName()..")")
+			end 
+		end 
 	else
-		gTerminal:Broadcast(entity, "Operation System Config");
-		gTerminal:Broadcast(entity, "  INFO:");
-		gTerminal:Broadcast(entity, "    Allows configuration of the operation system.");
-		gTerminal:Broadcast(entity, "  HELP:");
-		gTerminal:Broadcast(entity, "    install <name> - Installs an OS package.");
-		gTerminal:Broadcast(entity, "    list - Lists the available OS packages.");
-	end;
-end, "Operation system configuration.");
-
-local p_commands = Periph.commands
-OS:NewCommand("periph", function(client, entity, arguments)
-	if entity.destructor["periph"] == nil then
-		entity.destructor["disk"] = function(ent)
-			if !table.IsEmpty(ent.periphery) then
-				for i = 1, #ent.periphery do
-					local per_ent = ents.Create( ent.periphery[i] )
-                    per_ent:SetPos( entity:LocalToWorld(Vector(0,0,25 + i * 5)) )
-                    per_ent:Spawn()
-				end
-				ent.periphery = nil
-			end
-			ent.periphery = nil
-		end
-	end
-	local command = arguments[1]
-
-	if !command or !p_commands[command] then
-		gTerminal:Broadcast(entity, "Periphery System");
-		gTerminal:Broadcast(entity, "  INFO:");
-		gTerminal:Broadcast(entity, "    Configuration of the computer periphery.");
-		gTerminal:Broadcast(entity, "  HELP:");
-		for name, tbl in pairs(p_commands) do
-			gTerminal:Broadcast(entity, "    " .. name .. tbl.add_help .. " - " .. tbl.help)
-		end
-
-		return
-	end
-
-	p_commands[command].func(client, entity, arguments)
-end, "Configuration of periphery.")
-
-OS:NewCommand("x", function(client, entity)
-	gTerminal:SetInputMode(entity, client, GT_INPUT_NIL);
-	gTerminal:Broadcast( entity, "SHUTTING DOWN..." );
-	
-	timer.Simple(math.Rand(2, 5), function()
-		if ( IsValid(entity) ) then
-			for i = 0, 25 do
-				if ( IsValid(entity) ) then
-					gTerminal:Broadcast(entity, "", nil, i);
-				end;
-			end;
-
-			entity:SetActive(false);
-			if(table.HasValue(entity.periphery, "sent_pc_spk")) then
-				local beep_sound = CreateSound(entity, GT_SPK_BEEP .. "1.wav")
-				beep_sound:SetSoundLevel(GT_SPK_LVL)
-				beep_sound:Play()
-				timer.Simple(GT_SPK_DEL, function() beep_sound:Stop() end)
-			end
-			gTerminal.os:Call(entity, "ShutDown");
-		end;
-	end);
-end, "Turns off the terminal.");
+		gTerminal:Broadcast(entity, "Operation System Config")
+		gTerminal:Broadcast(entity, "  INFO:")
+		gTerminal:Broadcast(entity, "    Allows configuration of the operation system.")
+		gTerminal:Broadcast(entity, "  HELP:")
+		gTerminal:Broadcast(entity, "    install <name> - Installs an OS package.")
+		gTerminal:Broadcast(entity, "    install_disk - Installs an OS from disk.")
+		gTerminal:Broadcast(entity, "    list - Lists the available OS packages.")
+	end 
+end, "Operation system configuration.")

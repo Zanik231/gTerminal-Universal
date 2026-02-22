@@ -13,7 +13,7 @@ if (SERVER) then
 	function ENT:SpawnFunction(client, trace)
 		if (!trace.Hit) then
 			return false
-		end;
+		end 
 
 		local entity = ents.Create(self.ClassName)
 		entity:Initialize()
@@ -22,7 +22,7 @@ if (SERVER) then
 		entity:Activate()
 
 		return entity
-	end;
+	end 
 	function ENT:Initialize()
 		self:SetModel("models/zanik/pc/pc_speaker.mdl")
 		self:SetMoveType(MOVETYPE_VPHYSICS)

@@ -32,4 +32,4 @@ properties.Add( "use_gterminal",
 						ent:Use(player, player, USE_ON, 0)
 					end
 
-});
+}) 

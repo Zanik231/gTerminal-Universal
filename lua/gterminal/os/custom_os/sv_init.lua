@@ -1,17 +1,15 @@
 local OS = OS 
 
 function OS:GetName()
-	return "ROOT_DOS" 
+	return "Custom System" 
 end 
 
 function OS:GetUniqueID()
-	return "root_os" 
+	return "custom_os" 
 end 
 
 function OS:GetWarmUpText()
-	return {
-		"Root system."
-	} 
+	return nil
 end 
 
 include("sv_commands.lua") 
