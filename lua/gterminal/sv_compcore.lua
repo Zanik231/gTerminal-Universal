@@ -8,8 +8,7 @@ Periph.commands = {
 		func = function(client, entity, arguments)
             local succes = false
             for var = 1, #periphery do
-                if table.HasValue(entity.periphery, periphery[var]) == true then
-                else 
+                if !table.HasValue(entity.periphery, periphery[var]) then
                     for k, v in pairs(ents.FindByClass(periphery[var])) do
                         local dist = entity:GetPos():Distance(v:GetPos())
                         if (dist <= 64) then
@@ -32,7 +31,6 @@ Periph.commands = {
 	}, 
     ["discon"] = {
 		func = function(client, entity, arguments)
-            local succes = false
             if tonumber(arguments[2]) != nil then
                 if tonumber(arguments[2]) < #entity.periphery + 1 and tonumber(arguments[2]) > 0 then
                     local keyv = table.KeyFromValue(periphery, entity.periphery[tonumber(arguments[2])])
@@ -53,7 +51,6 @@ Periph.commands = {
 	}, 
     ["list"] = {
 		func = function(client, entity, arguments)
-            local succes = false
             if table.IsEmpty(entity.periphery) then
                 gTerminal:Broadcast(entity, "Periphery is not connected")
             else

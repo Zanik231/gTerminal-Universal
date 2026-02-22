@@ -1,17 +1,17 @@
-local OS = OS 
+local OS = OS
 
 function OS:GetName()
-	return "ROOT_DOS" 
-end 
+	return "ROOT_DOS"
+end
 
 function OS:GetUniqueID()
-	return "root_os" 
-end 
+	return "root_os"
+end
 
 function OS:GetWarmUpText()
 	return {
 		"Root system."
-	} 
-end 
+	}
+end
 
-include("sv_commands.lua") 
+include("sv_commands.lua")

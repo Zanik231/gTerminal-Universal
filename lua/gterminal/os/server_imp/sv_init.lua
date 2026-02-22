@@ -1,10 +1,10 @@
 function OS:GetName()
-	return "VEX-SERVER" 
-end 
+	return "VEX-SERVER"
+end
 
 function OS:GetUniqueID()
-	return "vex_server" 
-end 
+	return "vex_server"
+end
 
 function OS:GetWarmUpText()
 	return {
@@ -13,8 +13,8 @@ function OS:GetWarmUpText()
 		" \\   / | _| >  < |___|\\__ \\ \\    /  ",
 		"  \\_/  |___|_/\\_\\     |___/  \\__/   ",
 		" The operating system for server hosting.",
-		"   Build 160161SV"
-	} 
-end 
+		"   Build 200101SV"
+	}
+end
 
-include("sv_commands.lua") 
+include("sv_commands.lua")

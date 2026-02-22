@@ -227,14 +227,14 @@ Filesystem.commands = {
 	},
 	["touch"] = {
 		func = function(cl, ent, args)
-			if ent.os != "root_os" then
-				if string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
-					return
-				end
-			end
 			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
 			if ent.cur_dir[args[2]] != nil then 
 				if type(ent.cur_dir[args[2]]) != "string" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
+			end
+			if ent.os:GetUniqueID() != "root_os" and #args[2] >= 4 and
+			string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
+				gTerminal:Broadcast(ent, "Can't edit lua files on non root_os system!", GT_COL_ERR)
+				return
 			end
 
 			net.Start("gTerminal.Editor.Open")
@@ -469,14 +469,14 @@ Filesystem.commands = {
 	},
 	["luapad"] = {
 		func = function(cl, ent, args)
-			if ent.os != "root_os" then
-				if string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
-					return
-				end
-			end
 			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
 			if ent.cur_dir[args[2]] != nil then 
 				if type(ent.cur_dir[args[2]]) != "string" then gTerminal:Broadcast(ent, "Object is directory!", GT_COL_ERR) return end
+			end
+			if ent.os:GetUniqueID() != "root_os" and #args[2] >= 4 and
+			string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
+				gTerminal:Broadcast(ent, "Can't edit lua files on non root_os system!", GT_COL_ERR)
+				return
 			end
 
 			net.Start("gTerminal.LuaPadEditor.Open")
@@ -491,12 +491,12 @@ Filesystem.commands = {
 }
 
 function Filesystem.Initialize(ent)
-	entity.destructor["fs"] = function(ent)
-		if entity.Disk then
+	ent.destructor["fs"] = function(ent)
+		if ent.Disk then
 			local disk = ents.Create( "sent_disk" )
-			disk:SetPos( entity:LocalToWorld(Vector(0,0,25)) )
-			disk:SetNameD(entity.files["F:\\"]._dname)
-			disk:SetData(entity.files["F:\\"])
+			disk:SetPos( ent:LocalToWorld(Vector(0,0,25)) )
+			disk:SetNameD(ent.files["F:\\"]._dname)
+			disk:SetData(ent.files["F:\\"])
 			disk:Spawn()
 		end
 		ent.files = nil

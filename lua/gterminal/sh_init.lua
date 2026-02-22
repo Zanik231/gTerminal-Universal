@@ -30,5 +30,5 @@ GT_SPK_LVL = 42
 GT_SPK_DEL = 190
 
 function gTerminal:ColorFromIndex(code, ent)
-    return ent.colors[code] or ent.colors[GT_COL_NIL]
+    return ent.colors[code] or ent.colors[GT_COL_NIL] or GT_colors[GT_COL_NIL]
 end
