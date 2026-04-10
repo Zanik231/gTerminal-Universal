@@ -1,11 +1,11 @@
 include("sh_init.lua")
-include("sv_filesystem.lua")
-include("sv_compcore.lua")
-include("gterminal/sv_gnet.lua")
+include("components/sv_filesystem.lua")
+include("components/sv_compcore.lua")
+include("components/sv_gnet.lua")
 
 AddCSLuaFile("sh_init.lua")
-AddCSLuaFile("gterminal/cl_editor.lua")
-AddCSLuaFile("gterminal/cl_luapad_editor.lua")
+AddCSLuaFile("ui/cl_editor.lua")
+AddCSLuaFile("ui/cl_luapad_editor.lua")
 
 -- util.AddNetworkString("gT_InputMode")
 

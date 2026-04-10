@@ -275,4 +275,4 @@ OS:NewCommand("periph", function(client, entity, arguments)
 	p_commands[command].func(client, entity, arguments)
 end, "Configuration of periphery.")
 
-include("gterminal/default_commands.lua")
+include("default_commands.lua")

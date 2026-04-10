@@ -10,10 +10,8 @@ ENT.Purpose = "Base ore"
 ENT.Spawnable = true
 ENT.Category = "gTerminal"
 if (SERVER) then
-    duplicator.RegisterEntityModifier( "gT_Disk", function(p,e,d)
-    end)
-    duplicator.RegisterEntityModifier( "gT_DiskN", function(p,e,d)
-    end)
+    duplicator.RegisterEntityModifier( "gT_Disk", function(p,e,d) end)
+    duplicator.RegisterEntityModifier( "gT_DiskN", function(p,e,d) end)
     function ENT:Initialize()
         self:SetModel("models/zanik/pc/floppy.mdl")
         self:SetMoveType(MOVETYPE_VPHYSICS)
@@ -33,12 +31,8 @@ if (SERVER) then
 	end
     
     function ENT:OnDuplicated( entTable )
-        if entTable.EntityMods.gT_Disk then
-            self.Files = entTable.EntityMods.gT_Disk
-        end
-        if entTable.EntityMods.gT_DiskN then
-            self.name = entTable.EntityMods.gT_DiskN[1]
-        end
+        self.Files = entTable.EntityMods.gT_Disk or self.Files
+        self.name = entTable.EntityMods.gT_DiskN and entTable.EntityMods.gT_DiskN[1] or self.name
     end
 
     function ENT:GetNameD()
@@ -53,7 +47,7 @@ if (SERVER) then
 
     function ENT:SetData(data)
         self.Files = data
-        duplicator.StoreEntityModifier( self,"gT_Disk",self.Files )
+        duplicator.StoreEntityModifier( self,"gT_Disk", self.Files )
         duplicator.CopyEntTable( self )
     end
 

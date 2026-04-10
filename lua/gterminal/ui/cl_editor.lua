@@ -38,15 +38,15 @@ local main = vgui.RegisterTable({
         save:SetText("Save")
         save:SetSkin("gTerminalSkin")
         save.DoClick = function(s)
-            if #text_entry:GetValue() > 32761 then
+            comp_text = util.Compress(text_entry:GetValue())
+            if #comp_text > 32761 then
                 local error_frame = vgui.Create( "DFrame", self )
                 error_frame:Center()
                 error_frame:SetSize( ScrW()* .4, ScrH() * .25)
                 error_frame:SetTitle( "Error!" )
                 error_frame:SetVisible( true )
                 error_frame:SetDraggable( false )
-                error_frame:ShowCloseButton( false )
-                self:SetMouseInputEnabled(false)
+                error_frame:ShowCloseButton( true )
                 error_frame:MakePopup()
                 local error_label = vgui.Create( "DLabel", error_frame )
                 error_label:SetSize( ScrW()* .4, ScrH() * .25)
@@ -60,7 +60,6 @@ local main = vgui.RegisterTable({
                 close_error:SetText("OK")
                 close_error.DoClick = function()
                     error_frame:Close()
-                    self:SetMouseInputEnabled(true)
                     self:MakePopup()
                 end
                 return
@@ -68,7 +67,8 @@ local main = vgui.RegisterTable({
             net.Start("gTerminal.Editor.Save")
                 net.WriteEntity(self.entity)
                 net.WriteString(self.name)
-                net.WriteString(text_entry:GetValue())
+                net.WriteUInt(#comp_text,16)
+                net.WriteData(comp_text, #comp_text)
             net.SendToServer()
             self:Close()
         end

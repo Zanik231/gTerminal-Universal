@@ -1,7 +1,7 @@
 local gTerminal = gTerminal
 local timer = timer
 local OS = OS
-include("gterminal/default_commands.lua")
+include("gterminal/components/default_commands.lua")
 
 OS:NewCommand("os", function(client, entity, arguments)
 	local command = arguments[1]

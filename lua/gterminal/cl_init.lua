@@ -1,6 +1,6 @@
 include("sh_init.lua")
-include("gterminal/cl_editor.lua")
-include("gterminal/cl_luapad_editor.lua")
+include("gterminal/ui/cl_editor.lua")
+include("gterminal/ui/cl_luapad_editor.lua")
 
 gt_generated_snd = {}
 gt_computers_status = {}
@@ -201,13 +201,12 @@ net.Receive("gT_ActiveConsole", function()
 
 		client.gT_TextEntry.OnTextChanged = function(textEntry)
 			local offset = 0
-			local text
 			if entity:GetInputMode() == GT_INPUT_NIL then
 				textEntry:SetText("")
 				entity.consoleText = ""
 				return
 			end
-			text = textEntry:GetValue()
+			local text = textEntry:GetValue()
 			local maxChars = entity.maxChars or 50
 
 			if (utf8.len(text) > maxChars) then
