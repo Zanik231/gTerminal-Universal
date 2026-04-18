@@ -250,7 +250,7 @@ OS:NewCommand("periph", function(client, entity, arguments)
 			if !table.IsEmpty(ent.periphery) then
 				for i = 1, #ent.periphery do
 					local per_ent = ents.Create( ent.periphery[i] )
-                    per_ent:SetPos( entity:LocalToWorld(Vector(0,0,25 + i * 5)) )
+                    per_ent:SetPos( ent:LocalToWorld(Vector(0,0,25 + i * 5)) )
                     per_ent:Spawn()
 				end
 				ent.periphery = nil

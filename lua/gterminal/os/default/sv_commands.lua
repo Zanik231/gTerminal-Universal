@@ -43,11 +43,11 @@ OS:NewCommand("os", function(client, entity, arguments)
 			for k, v in pairs(ents.FindByClass("sent_disk")) do
 				local dist = entity:GetPos():Distance(v:GetPos())
 				
-				if dist <= 64 and v:GetData()['os.lua'] then
+				if dist <= 64 and v.Files['os.lua'] then
 					gTerminal.Filesystem.Initialize(entity)
 					entity.Disk = v
 					v:Remove()
-					entity.files["C:\\"] = table.Copy(entity.Disk:GetData())
+					entity.files["C:\\"] = table.Copy(entity.Files)
 					entity.files["C:\\"]._dname = "System Disk"
 					gTerminal:Broadcast(entity,"Disk has been founded!", GT_COL_SUCC)
 					

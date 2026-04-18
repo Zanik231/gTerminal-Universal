@@ -49,8 +49,8 @@ Filesystem.commands = {
 						entity.Disk = v
 						v:Remove()
 						gTerminal:Broadcast(entity,"A floppy disk is inserted")
-						entity.files["F:\\"] = entity.Disk:GetData()
-						entity.files["F:\\"]._dname = entity.Disk:GetNameD()
+						entity.files["F:\\"] = entity.Disk.Files
+						entity.files["F:\\"]._dname = entity.Disk.name
 						gTerminal:Broadcast(entity,"Disk has been initialized")
 						break
 					end
@@ -68,9 +68,9 @@ Filesystem.commands = {
 			if entity.Disk then
 				local disk = ents.Create( "sent_disk" )
 				disk:SetPos( entity:LocalToWorld(Vector(0,0,25)) )
-				disk:SetNameD(entity.files["F:\\"]._dname)
+				disk.name = entity.files["F:\\"]._dname
 				entity.files["F:\\"]._dname = nil
-				disk:SetData(entity.files["F:\\"])
+				disk.Files = entity.files["F:\\"]
 				disk:Spawn()
 				entity.Disk = nil
 				if entity.cur_disk == "F:\\" then
@@ -316,9 +316,11 @@ Filesystem.commands = {
 	},
 	["cat"] = {
 		func = function(cl, ent, args)
-			if ent.os != "root_os" and string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
+			if ent.os:GetUniqueID() != "root_os" and string.sub(args[2], #args[2] - 3, #args[2]) == ".lua" then
+				gTerminal:Broadcast(ent, "Cannot read lua file on non root_os", GT_COL_ERR)
 				return 
 			end
+			
 			--ent.cur_dir[args[2]]
 			if !args[2] or table.HasValue(ent.bad_words, args[2]) then gTerminal:Broadcast(ent, "Invalid file name!", GT_COL_ERR) return end
 			if !ent.cur_dir[args[2]] then gTerminal:Broadcast(ent, "File is not exists!", GT_COL_ERR) return end
@@ -407,7 +409,7 @@ Filesystem.commands = {
 	},
 		["exec"] = {
 		func = function(cl, ent, args)
-			if !GetConVar("gterminal_allow_user_execute"):GetBool() then
+			if !GetConVar("gterminal_allow_user_execute"):GetBool() and ent.os:GetUniqueID() != "root_os" then
 				gTerminal:Broadcast(ent, "Execute on not root_os is not allowed!")
 				return
 			end
@@ -500,8 +502,8 @@ function Filesystem.Initialize(ent)
 		if entity.Disk then
 			local disk = ents.Create( "sent_disk" )
 			disk:SetPos( entity:LocalToWorld(Vector(0,0,25)) )
-			disk:SetNameD(entity.files["F:\\"]._dname)
-			disk:SetData(entity.files["F:\\"])
+			disk.name = entity.files["F:\\"]._dname
+			disk.Files = entity.files["F:\\"]
 			disk:Spawn()
 		end
 		entity.files = nil

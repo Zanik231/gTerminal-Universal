@@ -1,6 +1,5 @@
 AddCSLuaFile()
 
---ENT.ClassName = "Computer" 
 ENT.PrintName = "Root Computer" 
 ENT.Category = "gTerminal" 
 ENT.Spawnable = true
@@ -17,9 +16,7 @@ ENT.maxLines = 24
 
 function ENT:GetScreenPos()
 	local angle = self:GetAngles()
-
 	local offset = angle:Up() * 11.8 + angle:Forward() * 11.72 + angle:Right() * 9.7
-
 	return self:GetPos() + offset
 end
 
@@ -32,8 +29,6 @@ function ENT:GetScreenAngles()
 	return angle
 end
 
-if SERVER then
-	function ENT:CustomInit()
-		self.os = gTerminal.os[ GetConVar("gterminal_default_os_root"):GetString() ]
-	end
+function ENT:CustomInit()
+	self.os = gTerminal.os[ GetConVar("gterminal_default_os_root"):GetString() ]
 end

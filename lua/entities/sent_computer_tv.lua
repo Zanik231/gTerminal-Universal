@@ -15,8 +15,6 @@ ENT.maxLines = 45
 
 function ENT:GetScreenPos()
     local angle = self:GetAngles()
-
     local offset = angle:Up() * 35.2 + angle:Forward() * 6 + angle:Right() * 27.9  
-
     return self:GetPos() + offset
 end

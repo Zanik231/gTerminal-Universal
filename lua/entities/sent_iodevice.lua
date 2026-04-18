@@ -1,5 +1,5 @@
 AddCSLuaFile()
-DEFINE_BASECLASS("base_wire_entity")
+ENT.Base = "base_wire_entity"
 ENT.PrintName = "Wire I/O Device"
 ENT.WireDebugName = "I/O Device"
 ENT.Author = "Busterdash"
@@ -18,7 +18,6 @@ function ENT:SetupDataTables()
 end
 
 if (SERVER) then
-
 	function ENT:Initialize()
 	
 		self:SetModel("models/props_lab/reciever01a.mdl")
@@ -71,6 +70,4 @@ if (SERVER) then
 			self:SetOverlayText("Claimed by [" .. self:GetComputer():EntIndex() .. "]")
 		end
 	end
-else
-
 end

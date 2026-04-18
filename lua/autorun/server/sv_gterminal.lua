@@ -15,13 +15,13 @@ local gTerminalSettings = {
     gterminal_fast_install = "0"
 }
 
-local a = file.Read( "gterminal.json", "DATA" )
-if a then
-    gTerminalSettings = table.Inherit(util.JSONToTable(a), gTerminalSettings)
+local gterminal_json = file.Read( "gterminal.json", "DATA" )
+if gterminal_json then
+    gTerminalSettings = table.Inherit(util.JSONToTable(gterminal_json), gTerminalSettings)
+    gterminal_json = nil
 else
     file.Write( "gterminal.json", util.TableToJSON(gTerminalSettings) )
 end
-a = nil
 
 CreateConVar("gterminal_default_os", "default", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Os for all gterminal computers")
 CreateConVar("gterminal_default_os_root", "root_os", {FCVAR_LUA_SERVER, FCVAR_NOTIFY}, "Os for root computer \"sent_computerzanik_root\"")

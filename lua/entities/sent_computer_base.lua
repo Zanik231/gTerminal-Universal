@@ -15,7 +15,7 @@ function ENT:OnRemove()
 		end
 		
 		if !table.IsEmpty(self.destructor) then
-			for k, v in pairs(self.destructor) do
+			for _, v in pairs(self.destructor) do
 				v(self)
 			end
 		end
@@ -121,7 +121,6 @@ if SERVER then
 		entity:SetAngles( SpawnAng )
 		entity:Spawn()
 		entity:Activate()
-
 		return entity
 	end
 

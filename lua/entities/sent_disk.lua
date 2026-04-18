@@ -1,7 +1,7 @@
 AddCSLuaFile()
 
 ENT.Type = "anim"
-ENT.Base = "base_gmodentity"
+ENT.Base = "base_anim"
 
 ENT.PrintName = "Disk"
 ENT.Author = "chupa"
@@ -10,8 +10,6 @@ ENT.Purpose = "Base ore"
 ENT.Spawnable = true
 ENT.Category = "gTerminal"
 if (SERVER) then
-    duplicator.RegisterEntityModifier( "gT_Disk", function(p,e,d) end)
-    duplicator.RegisterEntityModifier( "gT_DiskN", function(p,e,d) end)
     function ENT:Initialize()
         self:SetModel("models/zanik/pc/floppy.mdl")
         self:SetMoveType(MOVETYPE_VPHYSICS)
@@ -24,38 +22,12 @@ if (SERVER) then
             phys:Wake()
             phys:EnableMotion(true)
         end
+
+        self.name = self.name or "NewDisket"
+        self.Files = self.Files or {}
     end
 
 	function ENT:Use(ply)
 	    ply:PickupObject( self )
 	end
-    
-    function ENT:OnDuplicated( entTable )
-        self.Files = entTable.EntityMods.gT_Disk or self.Files
-        self.name = entTable.EntityMods.gT_DiskN and entTable.EntityMods.gT_DiskN[1] or self.name
-    end
-
-    function ENT:GetNameD()
-        return self.name or "NewDisket"
-    end
-
-    function ENT:SetNameD(str)
-        self.name = str
-        duplicator.StoreEntityModifier( self,"gT_DiskN",{self.name} )
-        duplicator.CopyEntTable( self )
-    end
-
-    function ENT:SetData(data)
-        self.Files = data
-        duplicator.StoreEntityModifier( self,"gT_Disk", self.Files )
-        duplicator.CopyEntTable( self )
-    end
-
-    function ENT:GetData()
-        return self.Files or {}
-    end
-else
-    function ENT:Draw()
-        self:DrawModel()
-    end
 end
