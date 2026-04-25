@@ -39,7 +39,7 @@ if SERVER then
 		self:SetSolid(SOLID_VPHYSICS)
 		self:SetUseType(SIMPLE_USE)
 		self:DrawShadow(false)
-		self.os = gTerminal.os[ GetConVar("gterminal_default_os"):GetString() ]
+		self.os = self.os or gTerminal.os[ GetConVar("gterminal_default_os"):GetString() ]
 		self.WarmedUp = false
 		self.periphery = {}
 		self.destructor = {}
@@ -51,9 +51,7 @@ if SERVER then
 			physicsObject:Wake()
 			physicsObject:EnableMotion(true)
 		end
-		if self.CustomInit then
-			self:CustomInit()
-		end
+		if self.CustomInit then self:CustomInit() end
 	end
 
 	function ENT:ShutDown()
@@ -76,6 +74,8 @@ if SERVER then
 				gTerminal:Broadcast(self, "")
 			end
 			gTerminal:Broadcast(self, "Welcome to gTerminal!")
+			gTerminal:WriteText(self, "Welcome to gTerminal!")
+			
 			gTerminal:Broadcast(self, "To list all commands, type " .. GetConVar("gterminal_command_prefix"):GetString() .."help")
 			self:SetInputMode(GT_INPUT_INP)
 			return
@@ -108,21 +108,7 @@ if SERVER then
 		end
 	end
 
-	function ENT:SpawnFunction(ply, trace, client)
-		if (!trace.Hit) then
-			return false
-		end
-		local SpawnAng = ply:EyeAngles()
-		SpawnAng.p = 0
-		SpawnAng.y = SpawnAng.y + 180
-		local entity = ents.Create(self.ClassName)
-		entity:Initialize()
-		entity:SetPos( trace.HitPos )
-		entity:SetAngles( SpawnAng )
-		entity:Spawn()
-		entity:Activate()
-		return entity
-	end
+
 
 	function ENT:Use(activator, caller)
 		if ( !self.WarmedUp ) then
@@ -187,18 +173,55 @@ else
 			cam.Start3D2D(pos, angle, 0.0215)
 				render.PushFilterMin(TEXFILTER.POINT)
 				render.PushFilterMag(TEXFILTER.POINT)
+        surface.SetFont("gT_ConsoleFont") -- ВАЖНО: установить шрифт здесь
+        
+        surface.SetDrawColor(self.BackgroundColor or color_black)
+        surface.DrawRect(0, 0, self.scrW, self.scrH)
 
-					surface.SetDrawColor(self.BackgroundColor)
-					surface.DrawRect(0, 0, self.scrW, self.scrH)
+        local lines = gTerminal[self:EntIndex()]
+        if lines then
+            for i = 1, self.maxLines do
+                local line = lines[i]
+                if not line then continue end
 
-					local lines = gTerminal[ self:EntIndex() ]
-					for i = 1, self.maxLines do
-						if ( lines[i] ) then
-							local color = gTerminal:ColorFromIndex(lines[i].color, self)
+                local xOffset = 1
+                local yPos = (self.lineHeight * i) - self.lineHeight
+                
+                local currentBlockText = ""
+                local currentBlockColor = -1
 
-							draw.SimpleText(lines[i].text or "", "gT_ConsoleFont", 1, (self.lineHeight * i) - self.lineHeight, color, 0, 0)
-						end
-					end
+                -- Проходим по всем ячейкам строки
+                for charIdx = 1, self.maxChars do
+                    local data = line[charIdx]
+                    if not data then continue end
+
+                    -- Если цвет сменился — рисуем то, что накопили
+                    if data.col != currentBlockColor then
+                        if currentBlockText != "" then
+                            local col = gTerminal:ColorFromIndex(currentBlockColor, self)
+                            surface.SetTextColor(col)
+                            surface.SetTextPos(xOffset, yPos)
+                            surface.DrawText(currentBlockText)
+                            
+                            local tw, _ = surface.GetTextSize(currentBlockText)
+                            xOffset = xOffset + tw
+                        end
+                        currentBlockColor = data.col
+                        currentBlockText = data.char
+                    else
+                        currentBlockText = currentBlockText .. data.char
+                    end
+                end
+
+                -- Рисуем последний оставшийся кусок
+                if currentBlockText != "" then
+                    local col = gTerminal:ColorFromIndex(currentBlockColor, self)
+                    surface.SetTextColor(col)
+                    surface.SetTextPos(xOffset, yPos)
+                    surface.DrawText(currentBlockText)
+                end
+            end
+        end
 
 					local y = (self.maxLines + 1) * self.lineHeight
 					surface.SetDrawColor(255, 255, 255, 15)

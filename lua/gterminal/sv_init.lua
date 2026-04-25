@@ -48,53 +48,93 @@ function gTerminal:ClearConsole(entity)
 	net.Broadcast()
 end
 
-function gTerminal:Broadcast(entity, text, colorType, position, xposition, onlyColor)
-	if ( !IsValid(entity) ) then
-		return
-	end
-	if ( !entity:GetActive() ) then
-		return
-	end
 
-	if !onlyColor then onlyColor = false end
-	text = tostring(text)
+colorTags = {
+    ["red"] = GT_COL_ERR,
+    ["green"] = GT_COL_SUCC,
+    ["white"] = GT_COL_MSG,
+    ["blue"] = GT_COL_INFO,
+}
 
-	local index = entity:EntIndex()
-	local output
-	local maxChars = entity.maxChars or 50
+function gTerminal:Broadcast(entity, text, colorType, position, xposition)
+    if !IsValid(entity) or !entity:GetActive() then return end
+    
+    text = tostring(text)
+    local index = entity:EntIndex()
+    local maxChars = entity.maxChars or 50
 
-	if (utf8.len(text) > maxChars) then
-		output = {}
+    -- 1. Проверяем, есть ли в тексте теги цветов
+    if text:find("{.-}") then
+        -- Если есть теги, создаем новую пустую строку
+        -- Мы вызываем саму себя, но с пустым текстом без тегов
+        self:Broadcast(entity, "", colorType or GT_COL_MSG, position, xposition)
 
-		local expected = math.floor(utf8.len(text) / maxChars)
+        local currentX = math.max(1, xposition or 1)
+        -- Если текст начинается не с тега, добавляем дефолтный белый
+        if not text:find("^{") then text = "{white}" .. text end
 
-		for i = 0, expected do
-			output[i + 1] = utf8.sub(text, i * maxChars, (i * maxChars) + maxChars - 1)
-		end
-	end
-
-	if (output) then
-		for k, v in ipairs(output) do
-			net.Start("gT_AddLine")
-				net.WriteUInt(index, 16)
-				net.WriteString(v)
-				net.WriteUInt(colorType or GT_COL_MSG, 8)
-				net.WriteInt(position and position + (k - 1) or -1, 16)
-				net.WriteInt(xposition and xposition or 0, 7)
-				net.WriteBool(onlyColor)
-			net.Broadcast()
-		end
-	else
-		net.Start("gT_AddLine")
-			net.WriteUInt(index, 16)
-			net.WriteString(text)
-			net.WriteUInt(colorType or GT_COL_MSG, 8)
-			net.WriteInt(position or -1, 16)
-			net.WriteInt(xposition and xposition or 0, 7)
-			net.WriteBool(onlyColor)
-		net.Broadcast()
-	end
+        -- Парсим теги
+        for tag, content in text:gmatch("{(.-)}([^{]*)") do
+            local col = colorTags[tag] or colorType or GT_COL_MSG
+            if content and #content > 0 then
+                net.Start("gT_AddLine")
+                    net.WriteUInt(index, 16)
+                    net.WriteString(content)
+                    net.WriteUInt(col, 8)
+                    net.WriteInt(0, 16) -- 0 = редактировать последнюю созданную строку
+                    net.WriteInt(currentX, 7)
+                    net.WriteBool(false)
+                net.Broadcast()
+                currentX = currentX + utf8.len(content)
+            end
+        end
+    else
+        -- 2. Обычная логика (если тегов нет или текст пустой)
+        local textLen = utf8.len(text)
+        
+        -- Если текст слишком длинный — режем на куски
+        if textLen > maxChars then
+            local expected = math.ceil(textLen / maxChars)
+            for i = 1, expected do
+                local chunk = utf8.sub(text, ((i - 1) * maxChars) + 1, i * maxChars)
+                net.Start("gT_AddLine")
+                    net.WriteUInt(index, 16)
+                    net.WriteString(chunk)
+                    net.WriteUInt(colorType or GT_COL_MSG, 8)
+                    net.WriteInt(position and (position + i - 1) or -1, 16)
+                    net.WriteInt(xposition or 0, 7)
+                    net.WriteBool(false)
+                net.Broadcast()
+            end
+        else
+            -- Короткий обычный текст
+            net.Start("gT_AddLine")
+                net.WriteUInt(index, 16)
+                net.WriteString(text)
+                net.WriteUInt(colorType or GT_COL_MSG, 8)
+                net.WriteInt(position or -1, 16)
+                net.WriteInt(xposition or 0, 7)
+                net.WriteBool(false)
+            net.Broadcast()
+        end
+    end
 end
+
+function gTerminal:WriteText(entity, text, colorType)
+    if !IsValid(entity) then return end
+    
+    -- Просто шлем текст с xposition = -1
+    -- Это скажет клиенту: "продолжай с того места, где замер cursorX"
+    net.Start("gT_AddLine")
+        net.WriteUInt(entity:EntIndex(), 16)
+        net.WriteString(tostring(text))
+        net.WriteUInt(colorType or GT_COL_MSG, 8)
+        net.WriteInt(0, 16) 
+        net.WriteInt(-1, 7) 
+        net.WriteBool(false)
+    net.Broadcast()
+end
+
 
 function gTerminal:SPK_Beep(entity, pitch, del)
 	if(table.HasValue(entity.periphery, "sent_pc_spk")) then
@@ -196,20 +236,28 @@ net.Receive("gT_EndConsole", function(length, client)
 	end 
 end)
 
-local files, folders = file.Find("gterminal/os/*", "LUA")
-
-for k, v in pairs(folders) do
-	OS = {}
+local function ALL_OS_INIT()
+	local _, folders = file.Find("gterminal/os/*", "LUA")
+	for k, v in pairs(folders) do
+		OS = {}
 		OS.commands = {}
-
+		
 		function OS:NewCommand(name, Callback, help)
 			self.commands[name] = {Callback = Callback, help = help}
 		end
 
-		include("os/"..v.."/sv_init.lua")
+		include("gterminal/os/"..v.."/sv_init.lua")
 
+		for _, ent in ents.Iterator() do
+			if ent.Base == "sent_computer_base" and ent.os:GetUniqueID() == OS:GetUniqueID() then
+				ent.os = OS
+			end
+		end
 		gTerminal.os[ OS:GetUniqueID() ] = OS
 	OS = nil
-end 
+	end 
+end
+ALL_OS_INIT()
+concommand.Add("gterminal_reload_lua_files", function() if CLIENT then return end ALL_OS_INIT() end)
 
 MsgC(Color(0, 255, 0), "Initialized gTerminalUNI!\n")

@@ -134,6 +134,7 @@ Filesystem.commands = {
 	},
 	["dir"] = {
 		func = function(cl, ent, args)
+			print(1)
 			local const_n_dir = ent.cur_dir
 			local n_dir = ent.cur_dir
 			if args[2] != nil then
@@ -484,13 +485,30 @@ Filesystem.commands = {
 				coroutine.yield()
 			end
 			]]
-			local a = CompileString("local entity = Entity(" .. tostring(ent:EntIndex()) .. ") " .. lib .." local thr = coroutine.create( function() entity:SetInputMode(GT_INPUT_NIL)" .. ent.cur_dir[args[2]] .. "entity:SetInputMode(GT_INPUT_INP) end ) coroutine.resume(thr)", args[2], false )
+			local a = CompileString([[
+    local entity = Entity(]] .. ent:EntIndex() .. [[) 
+    ]] .. lib .. [[
+    local thr = coroutine.create(function() 
+        entity:SetInputMode(GT_INPUT_NIL)
+        ]] .. ent.cur_dir[args[2]] .. [[
+        entity:SetInputMode(GT_INPUT_INP) 
+    end)
+    
+    local status, err = coroutine.resume(thr)
+    if not status then 
+        error(err)
+    end
+]], args[2], false)
 			if isstring(a) then
 				gTerminal:Broadcast(ent, a, GT_COL_ERR)
 				ent.args = nil
 				ent.cl = nil
 			else
-				a()
+    			xpcall(a, function(err) 
+        			gTerminal:Broadcast(ent, "Runtime Error: " .. tostring(err) .. "PS: ERROR line on -> line-60", GT_COL_ERR)
+        			print("GMod Error:", err)
+					ent:SetInputMode(GT_INPUT_INP)
+   			 	end)
 			end
 		end,
 		help = "Execute lua code from file.",

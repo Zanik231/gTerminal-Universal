@@ -12,7 +12,7 @@ OS:NewCommand("help", function(client, entity, arguments)
 		gTerminal:Broadcast(entity, "     ".. GetConVar("gterminal_command_prefix"):GetString() ..k.." - "..v.help)
 	end 
 
-	gTerminal:Broadcast(entity, string.rep("=",entity.maxChars))
+	gTerminal:Broadcast(entity, string.rep("=", entity.maxChars))
 end, "Provides a list of help.")
 
 OS:NewCommand("cls", function(client, entity)
@@ -32,7 +32,7 @@ OS:NewCommand("x", function(client, entity)
 	end 
 	gTerminal:SPK_Beep(entity)
 	
-	timer.Simple(math.Rand(2, 4), function()
+	timer.Simple((GT_SPK_DEL/1000) + math.random()*2, function()
 		if IsValid(entity) then entity:ShutDown() end
 	end)
 end, "Turns off the terminal.")
