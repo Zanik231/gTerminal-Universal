@@ -122,84 +122,53 @@ net.Receive("gT_AddLine", function(length)
 
     local line
     if position == -1 then
-        -- Новая строка: всегда сбрасываем X в начало
+        -- Новая строка
         line = {}
         for i = 1, maxChars do line[i] = {char = " ", col = colorType} end
         table.insert(gTerminal[index], line)
-        
         gTerminal[index].cursorY = #gTerminal[index]
         gTerminal[index].cursorX = 1
     else
-        -- Режим дозаписи или конкретная позиция
+        -- Конкретная строка (например, 18) или последняя (0)
         local targetY = (position == 0) and gTerminal[index].cursorY or position
+        
+        -- Если такой строки нет в сетке - создаем
         if !gTerminal[index][targetY] then
             gTerminal[index][targetY] = {}
             for i = 1, maxChars do gTerminal[index][targetY][i] = {char = " ", col = colorType} end
         end
         line = gTerminal[index][targetY]
-        
-        -- Если пришел конкретный xposition, ставим курсор туда, иначе используем старый
-        if xposition > 0 then
-            gTerminal[index].cursorX = xposition
-        elseif xposition == -1 then
-            -- Оставляем cursorX как есть (дозапись)
+
+        -- ВАЖНО: Если передан X (например 0 или 1), сбрасываем курсор для этой строки
+        if xposition >= 0 then
+            gTerminal[index].cursorX = (xposition == 0) and 1 or xposition
+            gTerminal[index].cursorY = targetY -- Синхронизируем Y
         end
     end
 
-    -- ЗАПИСЬ СИМВОЛОВ
-    local chars = utf8totable(text)
-    local tabSize = 4 -- Сколько пробелов дает табуляция
-
+    -- ЗАПИСЬ СИМВОЛОВ (используем utf8.totable)
+    local chars = utf8.totable(text)
     for i = 1, #chars do
-        local char = chars[i]
-
-        -- 1. Обработка ПЕРЕНОСА СТРОКИ (\n)
-        if char == "\n" then
-            gTerminal[index].cursorX = 1
-            local newLine = {}
-            for j = 1, maxChars do newLine[j] = {char = " ", col = colorType} end
-            table.insert(gTerminal[index], newLine)
-            gTerminal[index].cursorY = #gTerminal[index]
-            line = gTerminal[index][gTerminal[index].cursorY]
-            
-        -- 2. Обработка ТАБУЛЯЦИИ (\t)
-        elseif char == "\t" then
-            -- Сдвигаем курсор на tabSize пробелов
-            for t = 1, tabSize do
-                if gTerminal[index].cursorX > maxChars then break end
-                line[gTerminal[index].cursorX] = {char = " ", col = colorType}
-                gTerminal[index].cursorX = gTerminal[index].cursorX + 1
-            end
-
-        -- 3. ОБЫЧНЫЙ СИМВОЛ
-        else
-            -- Если вылезаем за ширину — авто-перенос
-            if gTerminal[index].cursorX > maxChars then
+        -- Если вылезли за пределы строки
+        if gTerminal[index].cursorX > maxChars then
+            -- Если мы в режиме "новой строки" (-1), то переносим
+            if position == -1 then
                 gTerminal[index].cursorX = 1
                 local newLine = {}
                 for j = 1, maxChars do newLine[j] = {char = " ", col = colorType} end
                 table.insert(gTerminal[index], newLine)
                 gTerminal[index].cursorY = #gTerminal[index]
                 line = gTerminal[index][gTerminal[index].cursorY]
+            else
+                -- Если мы пишем в конкретную строку (18), просто обрезаем лишнее
+                break 
             end
-
-            line[gTerminal[index].cursorX] = {char = char, col = colorType}
-            gTerminal[index].cursorX = gTerminal[index].cursorX + 1
         end
-    end
 
-
-    -- Лимит строк
-    if #gTerminal[index] > (ent.maxLines or 24) then
-        table.remove(gTerminal[index], 1)
-        -- Корректируем Y, так как все строки сместились вверх
-        gTerminal[index].cursorY = math.max(1, gTerminal[index].cursorY - 1)
+        line[gTerminal[index].cursorX] = {char = chars[i], col = colorType}
+        gTerminal[index].cursorX = gTerminal[index].cursorX + 1
     end
 end)
-
-
-
-
 
 net.Receive("gT_StartAsyncKey", function ()
 	local ent = net.ReadEntity()

@@ -446,6 +446,9 @@ Filesystem.commands = {
 			local print = function(str)
 				gTerminal:Broadcast(entity, str)
 			end
+			local write = function(str)
+				gTerminal:WriteText(entity, str)
+			end
 			local function sleep(dur)
 				local n_thread = coroutine.running()
 				timer.Simple((dur+1)/1000, function() coroutine.resume(n_thread) end)

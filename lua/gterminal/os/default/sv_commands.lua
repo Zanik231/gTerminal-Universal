@@ -108,7 +108,7 @@ OS:NewCommand("os", function(client, entity, arguments)
 					if ( IsValid(entity) ) then
 						local msgID = math.Clamp(i, 1, #messages)
 
-						gTerminal:Broadcast(entity, "     "..messages[msgID], GT_COL_MSG, 18)
+						gTerminal:Broadcast(entity, "     "..messages[msgID] .. string.rep(' ', entity.maxChars - (5 + messages[msgID]:len())  ), GT_COL_MSG, 18)
 						gTerminal:Broadcast(entity, "     ["..string.rep("=", i)..string.rep(" ", 25 - i).."] "..( 100 * math.Round(i / 25, 2) ).."%", GT_COL_MSG, 20)
 
 						if (i == 25) then

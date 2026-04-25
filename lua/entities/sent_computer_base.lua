@@ -74,7 +74,6 @@ if SERVER then
 				gTerminal:Broadcast(self, "")
 			end
 			gTerminal:Broadcast(self, "Welcome to gTerminal!")
-			gTerminal:WriteText(self, "Welcome to gTerminal!")
 			
 			gTerminal:Broadcast(self, "To list all commands, type " .. GetConVar("gterminal_command_prefix"):GetString() .."help")
 			self:SetInputMode(GT_INPUT_INP)

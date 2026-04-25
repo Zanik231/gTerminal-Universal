@@ -56,84 +56,88 @@ colorTags = {
     ["blue"] = GT_COL_INFO,
 }
 
+function gTerminal:SendSmartChunk(entity, text, color, pos, xpos)
+    net.Start("gT_AddLine")
+        net.WriteUInt(entity:EntIndex(), 16)
+        net.WriteString(text)
+        net.WriteUInt(color or GT_COL_MSG, 8)
+        net.WriteInt(pos, 16)   -- -1 новая, 0 последняя, >0 конкретный номер
+        net.WriteInt(xpos, 7)  -- -1 авто-курсор, 0 или >0 конкретный X
+        net.WriteBool(false)
+    net.Broadcast()
+end
+
+
+
+function gTerminal:ParseAndSend(entity, text, defaultColor, pos, xpos)
+	if not IsValid(entity) then return end
+	
+	local index = entity:EntIndex()
+	local escapedText = tostring(text):gsub("{{", "\1"):gsub("}}", "\2")
+	
+	local currentPos = pos or -1
+	
+	-- Умная логика X: если строка задана числом (18, 20), а X не указан, 
+	-- то принудительно ставим 1 (начало строки), чтобы не ломать анимацию.
+	local currentX = xpos
+	if not currentX then
+		if currentPos > 0 then
+			currentX = 1
+		else
+			currentX = -1 -- Для новых строк или Append используем курсор
+		end
+	end
+
+	-- Если в тексте нет цветовых тегов
+	if not escapedText:find("{.-}") then
+		local final = escapedText:gsub("\1", "{"):gsub("\2", "}")
+		self:SendSmartChunk(entity, final, defaultColor or GT_COL_MSG, currentPos, currentX)
+		return
+	end
+
+	-- Если это новая строка (pos == -1), сначала создаем её
+	if currentPos == -1 then
+		self:SendSmartChunk(entity, "", defaultColor or GT_COL_MSG, -1, 0)
+		currentPos = 0 -- Переключаемся в режим "последняя строка"
+		currentX = 1   -- Начинаем с начала этой строки
+	end
+
+	-- Гарантируем начальный цвет
+	if not escapedText:find("^{") then 
+		escapedText = "{white}" .. escapedText 
+	end
+
+	-- Цикл парсинга тегов
+	for tag, content in escapedText:gmatch("{(.-)}([^{]*)") do
+		local col = colorTags[tag]
+		
+		if col then
+			local clean = content:gsub("\1", "{"):gsub("\2", "}")
+			self:SendSmartChunk(entity, clean, col, currentPos, currentX)
+			-- После первого куска в этой строке всегда переходим в режим дозаписи (-1)
+			currentX = -1 
+		else
+			local raw = "{" .. tag .. "}" .. content
+			local cleanRaw = raw:gsub("\1", "{"):gsub("\2", "}")
+			self:SendSmartChunk(entity, cleanRaw, defaultColor or GT_COL_MSG, currentPos, currentX)
+			currentX = -1
+		end
+	end
+end
+
+
+
+
 function gTerminal:Broadcast(entity, text, colorType, position, xposition)
-    if !IsValid(entity) or !entity:GetActive() then return end
-    
-    text = tostring(text)
-    local index = entity:EntIndex()
-    local maxChars = entity.maxChars or 50
-
-    -- 1. Проверяем, есть ли в тексте теги цветов
-    if text:find("{.-}") then
-        -- Если есть теги, создаем новую пустую строку
-        -- Мы вызываем саму себя, но с пустым текстом без тегов
-        self:Broadcast(entity, "", colorType or GT_COL_MSG, position, xposition)
-
-        local currentX = math.max(1, xposition or 1)
-        -- Если текст начинается не с тега, добавляем дефолтный белый
-        if not text:find("^{") then text = "{white}" .. text end
-
-        -- Парсим теги
-        for tag, content in text:gmatch("{(.-)}([^{]*)") do
-            local col = colorTags[tag] or colorType or GT_COL_MSG
-            if content and #content > 0 then
-                net.Start("gT_AddLine")
-                    net.WriteUInt(index, 16)
-                    net.WriteString(content)
-                    net.WriteUInt(col, 8)
-                    net.WriteInt(0, 16) -- 0 = редактировать последнюю созданную строку
-                    net.WriteInt(currentX, 7)
-                    net.WriteBool(false)
-                net.Broadcast()
-                currentX = currentX + utf8.len(content)
-            end
-        end
-    else
-        -- 2. Обычная логика (если тегов нет или текст пустой)
-        local textLen = utf8.len(text)
-        
-        -- Если текст слишком длинный — режем на куски
-        if textLen > maxChars then
-            local expected = math.ceil(textLen / maxChars)
-            for i = 1, expected do
-                local chunk = utf8.sub(text, ((i - 1) * maxChars) + 1, i * maxChars)
-                net.Start("gT_AddLine")
-                    net.WriteUInt(index, 16)
-                    net.WriteString(chunk)
-                    net.WriteUInt(colorType or GT_COL_MSG, 8)
-                    net.WriteInt(position and (position + i - 1) or -1, 16)
-                    net.WriteInt(xposition or 0, 7)
-                    net.WriteBool(false)
-                net.Broadcast()
-            end
-        else
-            -- Короткий обычный текст
-            net.Start("gT_AddLine")
-                net.WriteUInt(index, 16)
-                net.WriteString(text)
-                net.WriteUInt(colorType or GT_COL_MSG, 8)
-                net.WriteInt(position or -1, 16)
-                net.WriteInt(xposition or 0, 7)
-                net.WriteBool(false)
-            net.Broadcast()
-        end
-    end
+    if !IsValid(entity) then return end
+    self:ParseAndSend(entity, tostring(text), colorType or GT_COL_MSG, position, xposition)
 end
 
 function gTerminal:WriteText(entity, text, colorType)
     if !IsValid(entity) then return end
-    
-    -- Просто шлем текст с xposition = -1
-    -- Это скажет клиенту: "продолжай с того места, где замер cursorX"
-    net.Start("gT_AddLine")
-        net.WriteUInt(entity:EntIndex(), 16)
-        net.WriteString(tostring(text))
-        net.WriteUInt(colorType or GT_COL_MSG, 8)
-        net.WriteInt(0, 16) 
-        net.WriteInt(-1, 7) 
-        net.WriteBool(false)
-    net.Broadcast()
+    self:ParseAndSend(entity, tostring(text), colorType or GT_COL_MSG, 0, -1)
 end
+
 
 
 function gTerminal:SPK_Beep(entity, pitch, del)
