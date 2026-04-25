@@ -108,20 +108,15 @@ function gTerminal:SPK_Beep(entity, pitch, del)
 			del = GT_SPK_DEL
 		end
 		if pitch < 37 then
-			pitch = 38
+			pitch = 37
 		elseif pitch > 32767 then
-			pitch = 32766
+			pitch = 32767
 		end
 		net.Start("gT_EmitSound")
 		net.WriteUInt(entity:EntIndex(), 13)
 		net.WriteUInt(pitch, 15)
+		net.WriteUInt(del, 32)
 		net.Broadcast()
-		timer.Simple( del, function()
-			net.Start("gT_StopSound")
-			net.WriteUInt(entity:EntIndex(), 13)
-			net.WriteUInt(pitch, 15)
-			net.Broadcast()
-		end )
 	end
 end
 

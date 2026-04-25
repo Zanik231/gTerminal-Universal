@@ -15,7 +15,7 @@ ENT.maxChars = 51
 ENT.maxLines = 24
 
 function ENT:CustomInit()
-    entity:SetSkin(1)
+    self:SetSkin(1)
 end
 function ENT:GetScreenPos()
     local angle = self:GetAngles()

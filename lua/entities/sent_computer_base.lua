@@ -143,9 +143,9 @@ if SERVER then
 		local user = self:GetUser()
 
 		if ( IsValid(user) ) then
-			local distance = user:GetPos():Distance( self:GetPos() )
+			local dist = user:GetPos():DistToSqr( self:GetPos() )
 
-			if ( !self:GetActive() or distance > 96 ) then
+			if ( !self:GetActive() or dist > 9216 ) then --96
 				net.Start("gT_EndTyping")
 				net.Send(user)
 

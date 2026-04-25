@@ -311,57 +311,37 @@ net.Receive("gT_ChangeForegroundColor", function()
 	ent.colors[pos] = color
 end)
 
-net.Receive("gT_GenerateSound", function()
-	local frequency = net.ReadUInt(15)
-	if gt_generated_snd[frequency] != nil then
-		return
+-- BEEP SOUNDS --
+local gTerminalGenerateSpkSound
+do
+	local function data( t, f )
+		return math.sin( t * math.pi * 2 / 44100 * f )
 	end
-	local samplerate = 44100
-	local function data( t )
-		return math.sin( t * math.pi * 2 / samplerate * frequency )
-	end
-	
-	
-	sound.Generate( "gt_pc_spk_" .. tostring(frequency), samplerate, 0.1, data, 0)
-	gt_generated_snd[tostring(frequency) .. "_" .. tostring(time)] = true
-end)
-
-net.Receive("gT_GenerateSoundtbl", function()
-	local tabl = net.ReadTable()
-	local freq = 0
-	local function data( t )
-		return math.sin( t * math.pi * 2 / 44100 * freq )
-	end
-	for i = 1, #tabl do
-		if gt_generated_snd[tabl[i]] != nil then
-			continue
+	gTerminalGenerateSpkSound = function(frequency, cached_str, cached_freq)
+		if !gt_generated_snd[frequency] then
+			sound.Generate( cached_str or "gt_pc_spk_" .. (cached_freq or tostring(frequency)) , 44100, math.Round(44100 / frequency) / 44100, function(t) return data(t, frequency) end, 0)
+			gt_generated_snd[frequency] = true
 		end
-		freq = tabl[i]
-		sound.Generate( "gt_pc_spk_" .. tostring(freq), 44100, 1, data, 0)
-		gt_generated_snd[tabl[i]] = true
 	end
-end)
+end
+
+-- net.Receive("gT_GenerateSoundtbl", function()
+	-- for freq in pairs(net.ReadTable()) do
+		-- gTerminalGenerateSpkSound(freq)
+	-- end
+-- end)
 
 net.Receive("gT_EmitSound", function()
-	local entity = Entity(net.ReadUInt(13))
+	local entity = net.ReadEntity()
 	local frequency = net.ReadUInt(15)
-	if gt_generated_snd[frequency] == nil then
-		local function data( t )
-			return math.sin( t * math.pi * 2 / 44100 * frequency )
-		end
-		
-		sound.Generate( "gt_pc_spk_" .. tostring(frequency), 44100, 1, data, 0)
-		gt_generated_snd[tostring(frequency)] = true
-	end
-	entity:EmitSound("gt_pc_spk_" .. tostring(frequency), GT_SPK_LVL)
+	local duration = net.ReadUInt(32) / 1000
+	local cached_freq = tostring(frequency)
+	local snd_name = "gt_pc_spk_" .. cached_freq
+
+	gTerminalGenerateSpkSound(frequency, snd_name, cached_freq)
+
+	entity:EmitSound(snd_name, 75)
+	timer.Simple(duration, function() entity:StopSound(snd_name) end)
 end)
 
-net.Receive("gT_StopSound", function()
-	local entity = Entity(net.ReadUInt(13))
-	local frequency = net.ReadUInt(15)
-	entity:StopSound("gt_pc_spk_" .. tostring(frequency))
-end)
--- net.Receive("gT_InputMode", function()
--- 	Entity(net.ReadUInt(13)).inputmode = net.ReadUInt(2)
--- end)
 MsgC(Color(0, 255, 0), "gTerminal: Universal loaded!\n") 

@@ -30,11 +30,9 @@ OS:NewCommand("x", function(client, entity)
 	for k, v in pairs( player.GetAll() ) do
 		v[ "pass_authed_"..entity:EntIndex() ] = nil 
 	end 
+	gTerminal:SPK_Beep(entity)
 	
 	timer.Simple(math.Rand(2, 4), function()
-		if ( IsValid(entity) ) then
-			entity:ShutDown()
-			gTerminal:SPK_Beep(entity)
-		end 
+		if IsValid(entity) then entity:ShutDown() end
 	end)
 end, "Turns off the terminal.")

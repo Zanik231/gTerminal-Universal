@@ -44,8 +44,8 @@ Filesystem.commands = {
 		func = function(cl, entity, args)
 			if !entity.Disk then
 				for k, v in pairs(ents.FindByClass("sent_disk")) do
-					local dist = entity:GetPos():Distance(v:GetPos())
-					if (dist <= 64) then
+					local dist = entity:GetPos():DistToSqr(v:GetPos())
+					if (dist <= 4096) then --64
 						entity.Disk = v
 						v:Remove()
 						gTerminal:Broadcast(entity,"A floppy disk is inserted")
@@ -526,7 +526,7 @@ end
 function Filesystem.CreateDir(ent, name)
 	if (tonumber(name) != nil) then gTerminal:Broadcast(entity,"Can't create directory with a name consisting of numbers!", GT_COL_ERR) return end
 	if !name or table.HasValue(ent.bad_words, name) then gTerminal:Broadcast(ent, "Invalid directory name!", GT_COL_ERR) return end
-	if type(ent.cur_dir[name]) == "string" then gTerminal:Broadcast(ent, "File with same name already exists!", GT_COL_ERR) return end
+	if isstring(ent.cur_dir[name]) then gTerminal:Broadcast(ent, "File with same name already exists!", GT_COL_ERR) return end
 	if ent.cur_dir[name] then gTerminal:Broadcast(ent, "Directory already exists!", GT_COL_ERR) return end
 	if utf8.len(name) > 20 then
 		gTerminal:Broadcast(ent, "Max chars in name must be not greater then 20!", GT_COL_ERR)
@@ -610,52 +610,46 @@ function Filesystem.PlaySoundFile(ent, sfilecontent)
 	if string.match(sfilecontent, "^[a-z]") != nil then gTerminal:Broadcast(ent, "In sound file has words!", GT_COL_ERR) return end
 	if #GTERM_table_numbers % 2 != 0 then gTerminal:Broadcast(ent, "Sum of numbers is odd number!", GT_COL_ERR) return end
 	
+	for i = 1, #GTERM_table_numbers do
+		GTERM_table_numbers[i] = tonumber(GTERM_table_numbers[i])
+	end
+
 	local generated_snd = {}
 	for i = 1, #GTERM_table_numbers, 2 do
-		if GTERM_table_numbers[i] == nil then
-			break
+		if GTERM_table_numbers[i+1] == 0 then
+			gTerminal:Broadcast(ent, "Time must be not 0! Check your sound file.", GT_COL_ERR) return
 		end
-		if GTERM_table_numbers[i+1] == "0" then
-			gTerminal:Broadcast(ent, "Time must be not 0!", GT_COL_ERR) return
-		end
-		if GTERM_table_numbers[i] == "0" then
+		if GTERM_table_numbers[i] == 0 then
 			continue
-		elseif tonumber(GTERM_table_numbers[i]) < 37 then
-			GTERM_table_numbers[i] = "38"
-		elseif tonumber(GTERM_table_numbers[i]) > 32767 then
-			GTERM_table_numbers[i] = "32766"
+		elseif GTERM_table_numbers[i] < 37 then
+			GTERM_table_numbers[i] = 37
+		elseif GTERM_table_numbers[i] > 32767 then
+			GTERM_table_numbers[i] = 32767
 		end
-		if !table.HasValue(generated_snd, GTERM_table_numbers[i]) then
-			generated_snd[#generated_snd + 1] = tonumber(GTERM_table_numbers[i])
+		if !generated_snd[GTERM_table_numbers[i]] then
+			generated_snd[GTERM_table_numbers[i]] = true
 		end
 	end
-		net.Start("gT_GenerateSoundtbl")
-		net.WriteTable(generated_snd)
-		net.Broadcast()
-	local function PlaySoundFileBase(arguments)
-		if arguments == #GTERM_table_numbers + 1 then
-			return
-		end
-		local delay = tonumber(GTERM_table_numbers[arguments + 1]) * 0.001
-		if GTERM_table_numbers[arguments] == "0" then
-			timer.Simple( delay, function() PlaySoundFileBase(arguments + 2) end )
+	local function PlaySoundFileBase(arg_index)
+		if arg_index == #GTERM_table_numbers + 1 then return end
+
+		local delay = GTERM_table_numbers[arg_index + 1]
+		local delay_sec = delay / 1000
+
+		local frequency = GTERM_table_numbers[arg_index]
+
+		if frequency == 0 then
+			timer.Simple( delay_sec, function() PlaySoundFileBase(arg_index + 2) end )
 		else
 			net.Start("gT_EmitSound")
-			net.WriteUInt(ent:EntIndex(), 13)
-			net.WriteUInt(tonumber(GTERM_table_numbers[arguments]), 15)
+			net.WriteEntity(ent)
+			net.WriteUInt(frequency, 15)
+			net.WriteUInt(delay, 32)
 			net.Broadcast()
-			timer.Simple( delay, function()
-				net.Start("gT_StopSound")
-				net.WriteUInt(ent:EntIndex(), 13)
-				net.WriteUInt(tonumber(GTERM_table_numbers[arguments]), 15)
-				net.Broadcast()
-				PlaySoundFileBase(arguments + 2)
-			end )
+			timer.Simple( delay_sec, function() PlaySoundFileBase(arg_index + 2) end)
 		end
 	end
-	timer.Simple( 5, function()
 		PlaySoundFileBase(1)
-	end )
 end
 
 gTerminal.Filesystem = Filesystem

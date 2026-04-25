@@ -30,118 +30,111 @@ OS:NewCommand("inp", function(client, entity)
 	end)
 end, "Input and output all on screen.")
 
-OS:NewCommand("claim", function(client, entity, arguments)
-
-	local nearest = nil
-	local range = 128
-	local override = false
-	local search_str = "Searching for nearest open I/O device..."
-	
-	if (arguments[1] == "override") then
-		override = true
-		search_str = "Searching for nearest overridable I/O device..."
-	end
-	
-	gTerminal:Broadcast(entity, "")
-	gTerminal:Broadcast(entity, search_str)
-	
-	for k, v in pairs(ents.FindByClass("sent_iodevice")) do
-		if (!IsValid(v:GetComputer()) or override) then
-			local dist = entity:GetPos():Distance(v:GetPos())
-			if (dist <= range) then
-				nearest = v
-				range = dist
-			end
-		end
-	end
-	
-	if (nearest == nil) then
-		gTerminal:Broadcast(entity, "No I/O devices were found nearby.", GT_COL_WRN)
-	else
-		gTerminal:Broadcast(entity, "Nearest I/O device: [" .. nearest:EntIndex() .. "]")
-		gTerminal:Broadcast(entity, "Claiming this device...")
-		nearest:SetComputer(entity)
-		gTerminal:Broadcast(entity, "I/O Device [" .. nearest:EntIndex() .. "] claimed.")
-	end
-	
-end, "Connects to an unclaimed I/O device.")
 if WireAddon then
-	OS:NewCommand("wset", function(client, entity, arguments)
+	local range = 16384 --128
+	OS:NewCommand("claim", function(client, entity, arguments)
+		local nearest = nil
+		local override = false
+		local search_str = "Searching for nearest open I/O device..."
+		
+		if (arguments[1] == "override") then
+			override = true
+			search_str = "Searching for nearest overridable I/O device..."
+		end
 
-	local nearest = nil
-	local range = 128
-	
-	for k, v in pairs(ents.FindByClass("sent_iodevice")) do
-		if (v:GetComputer() == entity) then
-			local dist = entity:GetPos():Distance(v:GetPos())
-			if (dist <= range) then
-				nearest = v
-				range = dist
+		gTerminal:Broadcast(entity, "")
+		gTerminal:Broadcast(entity, search_str)
+
+		for k, v in pairs(ents.FindByClass("sent_iodevice")) do
+			if (!IsValid(v:GetComputer()) or override) then
+				local dist = entity:GetPos():DistToSqr(v:GetPos())
+				if (dist <= range) then
+					nearest = v
+				end
 			end
 		end
-	end
-	
-	gTerminal:Broadcast(entity, "")
-	
-	if (nearest != nil) then
-		if (arguments[1] == nil or arguments[2] == nil) then
-			gTerminal:Broadcast(entity, "Usage(:set <letter> <string>)")
+
+		if (nearest == nil) then
+			gTerminal:Broadcast(entity, "No I/O devices were found nearby.", GT_COL_WRN)
 		else
-			local input = string.lower(arguments[1])
-			if (input == "a") then
-				nearest:SetOP0(arguments[2])
-			elseif (input == "b") then
-				nearest:SetOP1(arguments[2])
-			else
-				gTerminal:Broadcast(entity, "Unknown output stream!", GT_COL_WRN)
+			gTerminal:Broadcast(entity, "Nearest I/O device: [" .. nearest:EntIndex() .. "]")
+			gTerminal:Broadcast(entity, "Claiming this device...")
+			nearest:SetComputer(entity)
+			gTerminal:Broadcast(entity, "I/O Device [" .. nearest:EntIndex() .. "] claimed.",GT_COL_SUCC)
+		end
+	end, "Connects to an unclaimed I/O device.")
+
+	OS:NewCommand("wset", function(client, entity, arguments)
+		local nearest = nil
+		
+		for k, v in pairs(ents.FindByClass("sent_iodevice")) do
+			if (v:GetComputer() == entity) then
+				local dist = entity:GetPos():DistToSqr(v:GetPos())
+				if (dist <= range) then
+					nearest = v
+				end
 			end
 		end
-	else
-		gTerminal:Broadcast(entity, "Connection could not be made to I/O device!", GT_COL_WRN)
-	end
-	
+
+		gTerminal:Broadcast(entity, "")
+
+		if (nearest != nil) then
+			if (arguments[1] == nil or arguments[2] == nil) then
+				gTerminal:Broadcast(entity, "Usage(:set <letter> <string>)")
+			else
+				local input = string.lower(arguments[1])
+				if (input == "a") then
+					nearest:SetOP0(arguments[2])
+				elseif (input == "b") then
+					nearest:SetOP1(arguments[2])
+				else
+					gTerminal:Broadcast(entity, "Unknown output stream!", GT_COL_WRN)
+				end
+			end
+		else
+			gTerminal:Broadcast(entity, "Connection could not be made to I/O device!", GT_COL_WRN)
+		end
 	end, "Sets a value in an I/O device.")
 
 	OS:NewCommand("wget", function(client, entity, arguments)
-
-	local nearest = nil
-	local range = 128
-	
-	for k, v in pairs(ents.FindByClass("sent_iodevice")) do
-		if (v:GetComputer() == entity) then
-			local dist = entity:GetPos():Distance(v:GetPos())
-			if (dist <= range) then
-				nearest = v
-				range = dist
+		local nearest = nil
+		
+		for k, v in pairs(ents.FindByClass("sent_iodevice")) do
+			if (v:GetComputer() == entity) then
+				local dist = entity:GetPos():DistToSqr(v:GetPos())
+				if (dist <= range) then
+					nearest = v
+				end
 			end
 		end
-	end
-	
-	if (nearest != nil) then
-		gTerminal:Broadcast(entity, "")
-		if (arguments[1] == nil) then
-			gTerminal:Broadcast(entity, "Data returned from I/O Device:", GT_COL_INFO)
-			gTerminal:Broadcast(entity, "A: " .. nearest:GetIP0())
-			gTerminal:Broadcast(entity, "B: " .. nearest:GetIP1())
-		else
-			local input = string.lower(arguments[1])
-			if (input == "a") then
+
+		if (nearest != nil) then
+			gTerminal:Broadcast(entity, "")
+			if (arguments[1] == nil) then
 				gTerminal:Broadcast(entity, "Data returned from I/O Device:", GT_COL_INFO)
 				gTerminal:Broadcast(entity, "A: " .. nearest:GetIP0())
-			elseif (input == "b") then
-				gTerminal:Broadcast(entity, "Data returned from I/O Device:", GT_COL_INFO)
 				gTerminal:Broadcast(entity, "B: " .. nearest:GetIP1())
 			else
-				gTerminal:Broadcast(entity, "Unknown input stream!", GT_COL_WRN)
+				local input = string.lower(arguments[1])
+				if (input == "a") then
+					gTerminal:Broadcast(entity, "Data returned from I/O Device:", GT_COL_INFO)
+					gTerminal:Broadcast(entity, "A: " .. nearest:GetIP0())
+				elseif (input == "b") then
+					gTerminal:Broadcast(entity, "Data returned from I/O Device:", GT_COL_INFO)
+					gTerminal:Broadcast(entity, "B: " .. nearest:GetIP1())
+				else
+					gTerminal:Broadcast(entity, "Unknown input stream!", GT_COL_WRN)
+				end
 			end
+		else
+			gTerminal:Broadcast(entity, "")
+			gTerminal:Broadcast(entity, "Connection could not be made to I/O device!", GT_COL_WRN)
 		end
-	else
-		gTerminal:Broadcast(entity, "")
-		gTerminal:Broadcast(entity, "Connection could not be made to I/O device!", GT_COL_WRN)
-	end
-	
+
 	end, "Gets a value in an I/O device.")
 end
+
+
 OS:NewCommand("pass", function(client, entity, arguments)
 	local password = table.concat(arguments, " ")
 
@@ -155,7 +148,6 @@ OS:NewCommand("pass", function(client, entity, arguments)
 end, "Sets the password for the terminal.")
 
 OS:NewCommand("math", function(client, entity, arguments)
-	
 	local first = tonumber( arguments[1] )
 	local prefix = GetConVar("gterminal_command_prefix"):GetString()
 

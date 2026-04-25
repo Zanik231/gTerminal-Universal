@@ -41,9 +41,9 @@ OS:NewCommand("os", function(client, entity, arguments)
 				return
 			end
 			for k, v in pairs(ents.FindByClass("sent_disk")) do
-				local dist = entity:GetPos():Distance(v:GetPos())
+				local dist = entity:GetPos():DistToSqr(v:GetPos())
 				
-				if dist <= 64 and v.Files['os.lua'] then
+				if dist <= 4096 and v.Files['os.lua'] then -- 64
 					gTerminal.Filesystem.Initialize(entity)
 					entity.Disk = v
 					v:Remove()
