@@ -48,14 +48,6 @@ function gTerminal:ClearConsole(entity)
 	net.Broadcast()
 end
 
-
-colorTags = {
-    ["red"] = GT_COL_ERR,
-    ["green"] = GT_COL_SUCC,
-    ["white"] = GT_COL_MSG,
-    ["blue"] = GT_COL_INFO,
-}
-
 function gTerminal:SendSmartChunk(entity, text, color, pos, xpos)
     net.Start("gT_AddLine")
         net.WriteUInt(entity:EntIndex(), 16)
@@ -109,7 +101,7 @@ function gTerminal:ParseAndSend(entity, text, defaultColor, pos, xpos)
 
 	-- Цикл парсинга тегов
 	for tag, content in escapedText:gmatch("{(.-)}([^{]*)") do
-		local col = colorTags[tag]
+		local col = GT_color_tags[tag]
 		
 		if col then
 			local clean = content:gsub("\1", "{"):gsub("\2", "}")
