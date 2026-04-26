@@ -113,61 +113,99 @@ net.Receive("gT_AddLine", function(length)
     local ent = Entity(index)
     if !IsValid(ent) then return end
     local maxChars = ent.maxChars or 50
+    local maxLines = ent.maxLines or 24
 
     if !gTerminal[index] then gTerminal[index] = {} end
     
-    -- Инициализируем курсор, если его нет
+    -- Инициализация курсора, если его нет
     gTerminal[index].cursorX = gTerminal[index].cursorX or 1
     gTerminal[index].cursorY = gTerminal[index].cursorY or 1
 
     local line
+    -- 1. ОПРЕДЕЛЕНИЕ СТРОКИ
     if position == -1 then
-        -- Новая строка
+        -- Если мы на последней строке — прокручиваем вверх
+        if #gTerminal[index] >= maxLines then
+            table.remove(gTerminal[index], 1)
+        end
+        
         line = {}
         for i = 1, maxChars do line[i] = {char = " ", col = colorType} end
         table.insert(gTerminal[index], line)
+        
         gTerminal[index].cursorY = #gTerminal[index]
         gTerminal[index].cursorX = 1
     else
-        -- Конкретная строка (например, 18) или последняя (0)
+        -- Работа с конкретной строкой (для анимаций или дозаписи)
         local targetY = (position == 0) and gTerminal[index].cursorY or position
-        
-        -- Если такой строки нет в сетке - создаем
+        targetY = math.Clamp(targetY, 1, maxLines)
+
         if !gTerminal[index][targetY] then
             gTerminal[index][targetY] = {}
             for i = 1, maxChars do gTerminal[index][targetY][i] = {char = " ", col = colorType} end
         end
         line = gTerminal[index][targetY]
 
-        -- ВАЖНО: Если передан X (например 0 или 1), сбрасываем курсор для этой строки
+        -- Если передан X (>= 0), сбрасываем курсор для этой строки
         if xposition >= 0 then
             gTerminal[index].cursorX = (xposition == 0) and 1 or xposition
-            gTerminal[index].cursorY = targetY -- Синхронизируем Y
+            gTerminal[index].cursorY = targetY
         end
     end
 
+    -- 2. ЗАПИСЬ СИМВОЛОВ (UTF-8)
     local chars = utf8totable(text)
+    local tabSize = 4
+
     for i = 1, #chars do
-        -- Если вылезли за пределы строки
-        if gTerminal[index].cursorX > maxChars then
-            -- Если мы в режиме "новой строки" (-1), то переносим
-            if position == -1 then
+        local char = chars[i]
+
+        -- Обработка \n (Перенос строки)
+        if char == "\n" then
+            if #gTerminal[index] >= maxLines then table.remove(gTerminal[index], 1) end
+            
+            local newLine = {}
+            for j = 1, maxChars do newLine[j] = {char = " ", col = colorType} end
+            table.insert(gTerminal[index], newLine)
+            
+            gTerminal[index].cursorY = #gTerminal[index]
+            gTerminal[index].cursorX = 1
+            line = gTerminal[index][gTerminal[index].cursorY]
+
+        -- Обработка \t (Табуляция)
+        elseif char == "\t" then
+            for t = 1, tabSize do
+                if gTerminal[index].cursorX > maxChars then break end
+                if line then line[gTerminal[index].cursorX] = {char = " ", col = colorType} end
+                gTerminal[index].cursorX = gTerminal[index].cursorX + 1
+            end
+
+        -- Обычный символ
+        else
+            -- Автоматический перенос при достижении края строки (maxChars)
+            if gTerminal[index].cursorX > maxChars then
                 gTerminal[index].cursorX = 1
+                
+                if #gTerminal[index] >= maxLines then table.remove(gTerminal[index], 1) end
+
                 local newLine = {}
                 for j = 1, maxChars do newLine[j] = {char = " ", col = colorType} end
                 table.insert(gTerminal[index], newLine)
+                
                 gTerminal[index].cursorY = #gTerminal[index]
                 line = gTerminal[index][gTerminal[index].cursorY]
-            else
-                -- Если мы пишем в конкретную строку (18), просто обрезаем лишнее
-                break 
+            end
+
+            if line then
+                line[gTerminal[index].cursorX] = {char = char, col = colorType}
+                gTerminal[index].cursorX = gTerminal[index].cursorX + 1
             end
         end
-
-        line[gTerminal[index].cursorX] = {char = chars[i], col = colorType}
-        gTerminal[index].cursorX = gTerminal[index].cursorX + 1
     end
+    -- Больше никаких table.remove в конце функции не нужно!
 end)
+
+
 
 net.Receive("gT_StartAsyncKey", function ()
 	local ent = net.ReadEntity()
