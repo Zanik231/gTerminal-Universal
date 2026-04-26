@@ -146,8 +146,7 @@ net.Receive("gT_AddLine", function(length)
         end
     end
 
-    -- ЗАПИСЬ СИМВОЛОВ (используем utf8.totable)
-    local chars = utf8.totable(text)
+    local chars = utf8totable(text)
     for i = 1, #chars do
         -- Если вылезли за пределы строки
         if gTerminal[index].cursorX > maxChars then
