@@ -8,8 +8,8 @@ OS:NewCommand("os", function(client, entity, arguments)
 
 	if (command == "install" or command == "install_disk") then
 		local info = arguments[2]
-		local system = command == 'install_disk' and gTerminal.os['custom_os'] or gTerminal.os[info]
-		if command != "install_disk" then
+		local system = command == "install_disk" and gTerminal.os["custom_os"] or gTerminal.os[info]
+		if command != "install_disk" or true then
 			if (!info) then
 				gTerminal:Broadcast(entity, "Invalid OS identifier!", GT_COL_ERR)
 
@@ -23,12 +23,12 @@ OS:NewCommand("os", function(client, entity, arguments)
 
 				return 
 			elseif (info == "custom_os") then
-				gTerminal:Broadcast(entity, "For custom system you need disk with os!", GT_COL_ERR)
-				gTerminal:Broadcast(entity, "Check command :os install_disk!", GT_COL_ERR)
+				gTerminal:Broadcast(entity, "WORK IN PROGRESS!", GT_COL_ERR)
+				-- gTerminal:Broadcast(entity, "For custom system you need disk with os!", GT_COL_ERR)
+				-- gTerminal:Broadcast(entity, "Check command :os install_disk!", GT_COL_ERR)
 
 				return 
 			end 
-
 
 			if (!system) then
 				gTerminal:Broadcast(entity, "Couldn't find OS!", GT_COL_ERR)
@@ -37,7 +37,7 @@ OS:NewCommand("os", function(client, entity, arguments)
 			end
 		else
 			if entity.Disk then
-				gTerminal:Broadcast(entity,"Eject disk first!", GT_COL_ERR)
+				gTerminal:Broadcast(entity, "Eject disk first!", GT_COL_ERR)
 				return
 			end
 			for k, v in pairs(ents.FindByClass("sent_disk")) do
@@ -49,7 +49,7 @@ OS:NewCommand("os", function(client, entity, arguments)
 					v:Remove()
 					entity.files["C:\\"] = table.Copy(entity.Files)
 					entity.files["C:\\"]._dname = "System Disk"
-					gTerminal:Broadcast(entity,"Disk has been founded!", GT_COL_SUCC)
+					gTerminal:Broadcast(entity, "Disk has been founded!", GT_COL_SUCC)
 					
 					break
 				end
@@ -60,10 +60,10 @@ OS:NewCommand("os", function(client, entity, arguments)
 		if GetConVar("gterminal_fast_install"):GetBool() then
 			gTerminal:Broadcast(entity, "Installation complete!", GT_COL_SUCC)
 			entity:SetInputMode(GT_INPUT_NIL)
-			timer.Simple(math.Rand(1, 2), function()
+			timer.Simple(math.Rand(0.45, 1.15), function()
 				if ( IsValid(entity) ) then
 					entity:ShutDown()
-					entity.os = system
+					entity.os = info
 				end
 			end)
 			return
@@ -121,7 +121,7 @@ OS:NewCommand("os", function(client, entity, arguments)
 							timer.Simple(math.Rand(1, 2), function()
 								if ( IsValid(entity) ) then
 									entity:ShutDown()
-									entity.os = system
+									entity.os = info
 								end
 							end)
 						end

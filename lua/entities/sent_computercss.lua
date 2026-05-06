@@ -11,7 +11,7 @@ ENT.Spawnable = true
 ENT.scrW = 963
 ENT.scrH = 728
 ENT.lineHeight = 28
-ENT.maxChars = 51
+ENT.maxChars = 53
 ENT.maxLines = 24
 
 function ENT:CustomInit()

@@ -13,6 +13,7 @@ GT_COL_INFO = 5
 GT_COL_INTL = 6
 GT_COL_CMD = 7
 GT_COL_SUCC = 8
+GT_COL_CUSTOM = 9
 
 GT_colors_bit_count = 3
 GT_colors = {
@@ -24,16 +25,6 @@ GT_colors = {
     [GT_COL_INTL] = Color(60, 250, 250),
     [GT_COL_CMD] = Color(125, 125, 125),
     [GT_COL_SUCC] = Color(75, 255, 80)
-}
-GT_color_tags = {
-    ['nil'] = GT_COL_NIL,
-    ['msg'] = GT_COL_MSG,
-    ['wrn'] = GT_COL_WRN,
-    ['err'] = GT_COL_ERR,
-    ['inf'] = GT_COL_INFO,
-    ['intl'] = GT_COL_INTL,
-    ['cmd'] = GT_COL_CMD,
-    ['suc'] = GT_COL_SUCC
 }
 
 GT_SPK_LVL = 42

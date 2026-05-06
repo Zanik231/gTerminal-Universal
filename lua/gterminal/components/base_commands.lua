@@ -3,25 +3,32 @@ local Periph = gTerminal.Periph
 local Filesystem = gTerminal.Filesystem
 local OS = OS 
 OS:NewCommand("color", function(client, entity, arguments)
+
 	if arguments[1] == nil and arguments[2] == nil and arguments[3] == nil and arguments[4] == nil then
-		gTerminal:Broadcast(entity, "Usage - " ..GetConVar("gterminal_command_prefix"):GetString() .. "color <b/f> <red> <green> <blue>")
-	elseif arguments[2] == "default" then
-		if arguments[1] == "b" then
-			gTerminal:ChangeBackgroundColor(entity, entity.DefaultBackgroundColor)
-		else
-			gTerminal:ChangeForegroundColor(entity, Color(GT_colors[tonumber(arguments[3]) or GT_COL_MSG]), tonumber(arguments[3]) or GT_COL_MSG )
-		end
-	elseif arguments[1] != "f" and arguments[1] != "b" then
-		gTerminal:Broadcast(entity, "Second argument must be 'f' or 'b'!")
-	elseif tonumber(arguments[2]) == nil or tonumber(arguments[3]) == nil or tonumber(arguments[4]) == nil then
-		gTerminal:Broadcast(entity, "One of argument not a number or some argument missing!")
-	else
-		if arguments[1] == "b" then
-			gTerminal:ChangeBackgroundColor(entity, Color(tonumber(arguments[2]),tonumber(arguments[3]),tonumber(arguments[4]), tonumber(arguments[5]) or entity.DefaultBackgroundColor:ToTable()[4]) )
-			return
-		end
-		gTerminal:ChangeForegroundColor(entity, Color(tonumber(arguments[2]),tonumber(arguments[3]),tonumber(arguments[4]),255), tonumber(arguments[5]) or GT_COL_MSG )
+		gTerminal:Broadcast(entity, "Usage - " ..GetConVar("gterminal_command_prefix"):GetString() .. "color <b/f> <red> <green> <blue> f-><gt_col_ind>") return
 	end
+	if arguments[1] != "f" and arguments[1] != "b" then
+		gTerminal:Broadcast(entity, "Second argument must be 'f' or 'b'!", GT_COL_ERR) return
+	end
+	if (tonumber(arguments[2]) == nil or tonumber(arguments[3]) == nil or tonumber(arguments[4]) == nil) and arguments[2] != 'default' then
+		gTerminal:Broadcast(entity, "One of argument not a number or some argument missing!", GT_COL_ERR) return
+	end
+
+	if arguments[2] == 'default' then
+		if arguments[1] == 'f' then		
+			gTerminal:ChangeForegroundColor(entity, GT_colors[tonumber(arguments[3]) or GT_COL_MSG], tonumber(arguments[3]) or GT_COL_MSG )
+		elseif arguments[1] == "b" then
+			gTerminal:ChangeBackgroundColor(entity, entity.DefaultBackgroundColor)
+		end
+	else
+		local color_to_change = Color(tonumber(arguments[2]), tonumber(arguments[3]), tonumber(arguments[4]), 255)
+		if arguments[1] == 'f' then		
+			gTerminal:ChangeForegroundColor(entity, color_to_change, tonumber(arguments[5]) or GT_COL_MSG)
+		elseif arguments[1] == "b" then
+			gTerminal:ChangeBackgroundColor(entity, color_to_change)
+		end
+	end
+
 	end, "Change color for (back/fore)ground.")
 
 OS:NewCommand("inp", function(client, entity)

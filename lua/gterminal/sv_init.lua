@@ -7,20 +7,14 @@ AddCSLuaFile("sh_init.lua")
 AddCSLuaFile("ui/cl_editor.lua")
 AddCSLuaFile("ui/cl_luapad_editor.lua")
 
--- util.AddNetworkString("gT_InputMode")
-
 util.AddNetworkString("gT_ActiveConsole")
 util.AddNetworkString("gT_EndConsole")
-util.AddNetworkString("gT_AddColorLine")
 util.AddNetworkString("gT_AddLine")
 util.AddNetworkString("gT_ClsScreen")
 util.AddNetworkString("gT_EndTyping")
 util.AddNetworkString("gT_ChangeBackgroundColor")
 util.AddNetworkString("gT_ChangeForegroundColor")
-util.AddNetworkString("gT_GenerateSound")
-util.AddNetworkString("gT_GenerateSoundtbl")
 util.AddNetworkString("gT_EmitSound")
-util.AddNetworkString("gT_StopSound")
 
 gTerminal = gTerminal or {}
 gTerminal.os = gTerminal.os or {}
@@ -30,15 +24,15 @@ local net = net
 
 function gTerminal:ChangeForegroundColor(entity, color, color_index)
 	net.Start("gT_ChangeForegroundColor")
-	net.WriteUInt(entity:EntIndex(),16)
+	net.WriteEntity(entity)
 	net.WriteColor(color)
 	net.WriteUInt(color_index, GT_colors_bit_count)
 	net.Broadcast()
 end
 function gTerminal:ChangeBackgroundColor(entity, color)
 	net.Start("gT_ChangeBackgroundColor")
-	net.WriteUInt(entity:EntIndex(),16)
-	net.WriteColor(color)
+	net.WriteEntity(entity)
+	net.WriteColor(Color(color.r, color.g, color.b, entity.DefaultBackgroundColor.a))
 	net.Broadcast()
 end
 
@@ -48,89 +42,75 @@ function gTerminal:ClearConsole(entity)
 	net.Broadcast()
 end
 
+-- OUTPUT TEXT --
+
+gTerminal.CurrentColors = gTerminal.CurrentColors or {}
+
+function gTerminal:SetColor(entity, colorIndex)
+    gTerminal.CurrentColors[entity:EntIndex()] = colorIndex or GT_COL_MSG
+end
+
 function gTerminal:SendSmartChunk(entity, text, color, pos, xpos)
     net.Start("gT_AddLine")
-        net.WriteUInt(entity:EntIndex(), 16)
+        net.WriteEntity(entity)
         net.WriteString(text)
-        net.WriteUInt(color or GT_COL_MSG, 8)
-        net.WriteInt(pos, 16)   -- -1 новая, 0 последняя, >0 конкретный номер
-        net.WriteInt(xpos, 7)  -- -1 авто-курсор, 0 или >0 конкретный X
-        net.WriteBool(false)
+        
+        local isCustom = IsColor(color)
+        net.WriteBool(isCustom)
+        if isCustom then
+            net.WriteColor(color)
+        else
+            net.WriteUInt(color or GT_COL_MSG, 8)
+        end
+        
+        net.WriteInt(pos, 16)
+        net.WriteInt(xpos or -1, 7)
     net.Broadcast()
 end
 
-
-
-function gTerminal:ParseAndSend(entity, text, defaultColor, pos, xpos)
-	if not IsValid(entity) then return end
-	
-	local index = entity:EntIndex()
-	local escapedText = tostring(text):gsub("{{", "\1"):gsub("}}", "\2")
-	
-	local currentPos = pos or -1
-	
-	-- Умная логика X: если строка задана числом (18, 20), а X не указан, 
-	-- то принудительно ставим 1 (начало строки), чтобы не ломать анимацию.
-	local currentX = xpos
-	if not currentX then
-		if currentPos > 0 then
-			currentX = 1
-		else
-			currentX = -1 -- Для новых строк или Append используем курсор
-		end
-	end
-
-	-- Если в тексте нет цветовых тегов
-	if not escapedText:find("{.-}") then
-		local final = escapedText:gsub("\1", "{"):gsub("\2", "}")
-		self:SendSmartChunk(entity, final, defaultColor or GT_COL_MSG, currentPos, currentX)
-		return
-	end
-
-	-- Если это новая строка (pos == -1), сначала создаем её
-	if currentPos == -1 then
-		self:SendSmartChunk(entity, "", defaultColor or GT_COL_MSG, -1, 0)
-		currentPos = 0 -- Переключаемся в режим "последняя строка"
-		currentX = 1   -- Начинаем с начала этой строки
-	end
-
-	-- Гарантируем начальный цвет
-	if not escapedText:find("^{") then 
-		escapedText = "{white}" .. escapedText 
-	end
-
-	-- Цикл парсинга тегов
-	for tag, content in escapedText:gmatch("{(.-)}([^{]*)") do
-		local col = GT_color_tags[tag]
-		
-		if col then
-			local clean = content:gsub("\1", "{"):gsub("\2", "}")
-			self:SendSmartChunk(entity, clean, col, currentPos, currentX)
-			-- После первого куска в этой строке всегда переходим в режим дозаписи (-1)
-			currentX = -1 
-		else
-			local raw = "{" .. tag .. "}" .. content
-			local cleanRaw = raw:gsub("\1", "{"):gsub("\2", "}")
-			self:SendSmartChunk(entity, cleanRaw, defaultColor or GT_COL_MSG, currentPos, currentX)
-			currentX = -1
-		end
-	end
-end
-
-
-
-
 function gTerminal:Broadcast(entity, text, colorType, position, xposition)
-    if !IsValid(entity) then return end
-    self:ParseAndSend(entity, tostring(text), colorType or GT_COL_MSG, position, xposition)
+    if not IsValid(entity) then return end
+    
+    local index = entity:EntIndex()
+    local oldColor = gTerminal.CurrentColors[index] or GT_COL_MSG
+    local activeColor = colorType or oldColor
+
+    local isStaticPos = position and position > 0
+
+    self:SendSmartChunk(entity, tostring(text or ""), activeColor, position or 0, xposition or (isStaticPos and 1 or -1))
+    
+    if colorType and colorType != oldColor then
+        self:SendSmartChunk(entity, "", oldColor, 0, -1)
+    end
+
+    if not isStaticPos then
+        self:SendSmartChunk(entity, "\n", oldColor, 0, -1)
+    end
 end
 
 function gTerminal:WriteText(entity, text, colorType)
-    if !IsValid(entity) then return end
-    self:ParseAndSend(entity, tostring(text), colorType or GT_COL_MSG, 0, -1)
+    if not IsValid(entity) then return end
+
+    local index = entity:EntIndex()
+    local oldColor = gTerminal.CurrentColors[index] or GT_COL_MSG
+    local activeColor = colorType or oldColor
+
+    self:SendSmartChunk(entity, tostring(text), activeColor, 0, -1)
+
+    if colorType and colorType != oldColor then
+        self:SendSmartChunk(entity, "", oldColor, 0, -1)
+    end
 end
 
+function gTerminal:GetEntityCurrentLine(ent)
+    if not IsValid(ent) then return nil end
+    local index = ent:EntIndex()
+    local data = gTerminal[index]
+    if not data then return nil end
 
+    local y = data.cursorY or 1
+    return data.cursorX or 1, y, data[y] 
+end
 
 function gTerminal:SPK_Beep(entity, pitch, del)
 	if(table.HasValue(entity.periphery, "sent_pc_spk")) then
@@ -149,7 +129,7 @@ function gTerminal:SPK_Beep(entity, pitch, del)
 			pitch = 32767
 		end
 		net.Start("gT_EmitSound")
-		net.WriteUInt(entity:EntIndex(), 13)
+		net.WriteEntity(entity)
 		net.WriteUInt(pitch, 15)
 		net.WriteUInt(del, 32)
 		net.Broadcast()
@@ -162,9 +142,8 @@ function gTerminal:GetInput(entity, Callback)
 end
 
 net.Receive("gT_EndConsole", function(length, client)
-	local index = net.ReadUInt(16)
-	local entity = Entity(index)
-	local text = net.ReadString()
+	local entity = net.ReadEntity()
+	local text = util.Decompress(net.ReadData(net.ReadUInt(16)))
 
 	if (IsValid(entity) and entity.GetUser and IsValid( entity:GetUser() ) and entity:GetUser() == client) then
 		if (text == "") then
@@ -176,7 +155,7 @@ net.Receive("gT_EndConsole", function(length, client)
 			return
 		end 
 		if entity.os == "custom_os" then
-			entity:InputHandler() // ДОДЕЛАТЬ!!!
+			entity:InputHandler()
 			return
 		end
 		if ( entity.password and !client["pass_authed_"..index] ) then
@@ -201,7 +180,7 @@ net.Receive("gT_EndConsole", function(length, client)
 		local is_space_prefix = prefix == ""
 
 		if (string.sub(text, 1, 1) == prefix or is_space_prefix) then
-			local system = entity.os.commands
+			local system = gTerminal.os[entity.os].commands
 
 			if (system) then
 				local str = string.Split(text, " ")
@@ -243,12 +222,6 @@ local function ALL_OS_INIT()
 		end
 
 		include("gterminal/os/"..v.."/sv_init.lua")
-
-		for _, ent in ents.Iterator() do
-			if ent.Base == "sent_computer_base" and ent.os:GetUniqueID() == OS:GetUniqueID() then
-				ent.os = OS
-			end
-		end
 		gTerminal.os[ OS:GetUniqueID() ] = OS
 	OS = nil
 	end 
@@ -256,4 +229,5 @@ end
 ALL_OS_INIT()
 concommand.Add("gterminal_reload_lua_files", function() if CLIENT then return end ALL_OS_INIT() end)
 
+-- hook.Add('LoadGModSave', 'GterminalReload', function() timer.Simple(0.5, ALL_OS_INIT) end)
 MsgC(Color(0, 255, 0), "Initialized gTerminalUNI!\n")

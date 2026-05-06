@@ -30,5 +30,5 @@ function ENT:GetScreenAngles()
 end
 
 function ENT:CustomInit()
-	self.os = gTerminal.os[ GetConVar("gterminal_default_os_root"):GetString() ]
+	self.os = self.os or GetConVar("gterminal_default_os_root"):GetString()
 end

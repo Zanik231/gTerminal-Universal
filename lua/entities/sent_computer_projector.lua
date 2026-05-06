@@ -13,7 +13,7 @@ ENT.BackgroundColor = Color(0, 0, 0, 225)
 ENT.scrW = 2048
 ENT.scrH = 1024
 ENT.lineHeight = 32
-ENT.maxChars = 111
+ENT.maxChars = 113
 ENT.maxLines = 30
 
 function ENT:GetScreenPos()
