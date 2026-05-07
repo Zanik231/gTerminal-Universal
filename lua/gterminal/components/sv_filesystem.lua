@@ -76,10 +76,10 @@ Filesystem.commands = {
 			if entity.Disk then
 				local disk = ents.Create("sent_disk")
 				disk:SetPos(entity:LocalToWorld(Vector(0, 0, 25)))
-				disk.name = entity.files["F:\\"]._dname
-				entity.files["F:\\"]._dname = nil
 				disk.Files = entity.files["F:\\"]
 				disk:Spawn()
+				disk:SetDName(entity.files["F:\\"]._dname)
+				entity.files["F:\\"]._dname = nil
 				entity.Disk = nil
 				if entity.cur_disk == "F:\\" then
 					entity.cur_disk = "C:\\"
@@ -141,8 +141,12 @@ Filesystem.commands = {
 					return
 				end
 			end
-
-			entity.files[args[2]]._dname = table.concat(args, " ", 3)
+			local new_name = table.concat(args, " ", 3)
+			if #new_name > 22 then
+				gTerminal:Broadcast(entity, "Maximum chars in name is 22!", GT_COL_ERR)
+				return
+			end
+			entity.files[args[2]]._dname = new_name
 		end,
 		help = "Disk rename",
 		add_help = " <disk> <name>",
