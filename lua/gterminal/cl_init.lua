@@ -300,6 +300,7 @@ net.Receive("gT_EndTyping", function(length)
 	
 	local gt_entity = client.gT_Entity
 	if IsValid(gt_entity) then
+		gt_entity:SetUser(nil)
 		gt_entity.consoleText = ""
 		client.gT_Entity = nil
 	end

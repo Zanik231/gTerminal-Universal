@@ -1,10 +1,14 @@
 AddCSLuaFile()
+
 ENT.Type = "anim"
 ENT.Base = "base_anim"
+
 ENT.Spawnable = false
 ENT.Category = "gTerminal"
+
 ENT.Model = "models/props_phx/rt_screen.mdl"
 ENT.BackgroundColor = Color(0, 0, 0, 255)
+
 function ENT:OnRemove()
 	if SERVER then
 		for k, v in pairs(player.GetAll()) do
@@ -67,7 +71,8 @@ if SERVER then
 		self:SetActive(false)
 		self.WarmedUp = false
 		self:SetInputMode(GT_INPUT_NIL)
-		self:SetUser(nil)
+		net.Start("gT_EndTyping")
+		net.Send(self:GetUser())
 		gTerminal:ClearConsole(self)
 	end
 
