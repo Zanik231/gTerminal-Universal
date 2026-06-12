@@ -12,6 +12,7 @@ ENT.Category = "gTerminal"
 function ENT:SetupDataTables()
 	self:NetworkVar("String", 0, "DName")
 end
+
 if (SERVER) then
     function ENT:Initialize()
         self:SetModel("models/zanik/pc/floppy.mdl")
