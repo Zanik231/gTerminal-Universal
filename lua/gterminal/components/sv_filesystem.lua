@@ -603,6 +603,57 @@ gTerminal.API = {
 		if not need_output then gTerminal:Broadcast(ent, b) end
 		return b
 	end,
+	["getAsyncKeyDown"] = function(ent, key)
+		local as_keys = ent.AsyncKeys
+		local asp_keys = ent.AsyncKeysPressed
+		if isstring(key) then
+			key = input.GetKeyCode(key)
+		end
+		if !as_keys[key] then
+			if !table.HasValue(as_keys, key) then
+				as_keys[#as_keys + 1] = key
+			end
+			return false
+		end
+
+		return asp_keys[key]
+	end,
+	["addAsyncKey"] = function(ent, key)
+		local as_keys = ent.AsyncKeys
+		if isstring(key) then
+			key = input.GetKeyCode(key)
+		end
+		if !table.HasValue(as_keys, key) then
+			as_keys[#as_keys + 1] = key
+
+			local user = ent:GetUser()
+			if IsValid(user) then
+				net.Start("gT_AsyncKeyPacket")
+				net.WriteUInt(1, 2)
+				net.WriteUInt(key, 8)
+				net.Send(user)
+			end
+		end
+	end,
+	["parseTableAsyncKey"] = function(ent, key_table)
+		local as_keys = ent.AsyncKeys
+		for i = 1, #key_table do
+			local key = key_table[i]
+			if isstring(key) then
+				key = input.GetKeyCode(key)
+			end
+			if !table.HasValue(as_keys, key) then
+				as_keys[#as_keys + 1] = key
+				local user = ent:GetUser()
+				if IsValid(user) then
+					net.Start("gT_AsyncKeyPacket")
+					net.WriteUInt(1, 2)
+					net.WriteUInt(key, 8)
+					net.Send(user)
+				end
+			end
+		end
+	end,
 	["beep"] = function(ent, freq, dur)
 		gTerminal:SPK_Beep(entity, freq, dur)
 		gTerminal.API.sleep(ent, dur)
@@ -610,7 +661,8 @@ gTerminal.API = {
 	["beepAsync"] = function(ent, freq, dur) gTerminal:SPK_Beep(entity, freq, dur) end,
 	["exit"] = function(ent, internal)
 		ent:SetInputMode(GT_INPUT_INP)
-		
+		ent.destructor["exec"] = nil
+
 		gTerminal:SetColor(ent, GT_COL_MSG)
 		gTerminal:ChangeBackgroundColor(ent, ent.DefaultBackgroundColor)
 
@@ -630,6 +682,17 @@ gTerminal.API = {
 		ent.timer_table = nil
 		ent.stimer_table = nil
 		ent.scriptExecuting = nil
+		ent.executingCoroutine = nil
+		ent.AsyncKeys = nil
+		ent.AsyncKeysPressed = nil
+
+		local user = ent:GetUser()
+		if IsValid(user) then
+			net.Start("gT_AsyncKeyPacket")
+			net.WriteUInt(2, 2)
+			net.Send(user)
+		end
+
 		collectgarbage()
 		if not internal then coroutine.yield() end
 	end,
@@ -720,10 +783,30 @@ Filesystem.commands.exec = {
 			ent.cl = cl
 			ent.timer_table = {}
 			ent.stimer_table = {}
+			ent.AsyncKeys = {}
+			ent.AsyncKeysPressed = {}
 			ent.scriptExecuting = true
 			setfenv(program, GetGTERMEnviroment(ent))
 			ent:SetInputMode(GT_INPUT_NIL)
-			try_coroutine_resume(coroutine.create(program))
+
+			local cr = coroutine.create(program)
+			ent.executingCoroutine = cr
+
+			local user = ent:GetUser()
+			if IsValid(user) then
+				net.Start("gT_AsyncKeyPacket")
+				net.WriteUInt(0, 2)
+				net.WriteEntity(ent)
+				net.WriteTable(ent.AsyncKeys, true)
+				net.Send(user)
+			end
+
+			ent.destructor["exec"] = function(ent_arg)
+				gTerminal.API.exit(ent_arg, true)
+				ent_arg.executingCoroutine = nil
+				ent_arg.scriptExecuting = nil
+			end
+			try_coroutine_resume(ent, cr)
 		end
 	end,
 	help = "Execute lua code from file.",
@@ -731,16 +814,16 @@ Filesystem.commands.exec = {
 }
 
 function Filesystem.Initialize(ent)
-	ent.destructor["fs"] = function(entity)
-		if entity.Disk then
+	ent.destructor["fs"] = function(ent_arg)
+		if ent_arg.Disk then
 			local disk = ents.Create("sent_disk")
-			disk:SetPos(entity:LocalToWorld(Vector(0, 0, 25)))
-			disk.name = entity.files["F:\\"]._dname
-			disk.Files = entity.files["F:\\"]
+			disk:SetPos(ent_arg:LocalToWorld(Vector(0, 0, 25)))
+			disk.name = ent_arg.files["F:\\"]._dname
+			disk.Files = ent_arg.files["F:\\"]
 			disk:Spawn()
 		end
 
-		entity.files = nil
+		ent_arg.files = nil
 	end
 
 	ent.files = {

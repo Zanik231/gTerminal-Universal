@@ -58,6 +58,7 @@ if SERVER then
 		gTerminal:Broadcast(self, "Terminal loaded!", GT_COL_SUCC)
 		if self.scriptExecuting then
 			self.scriptExecuting = nil
+			self.executingCoroutine = nil
 			self:SetInputMode(GT_INPUT_INP)
 		end
 	end
@@ -66,6 +67,7 @@ if SERVER then
 		self:SetActive(false)
 		self.WarmedUp = false
 		self:SetInputMode(GT_INPUT_NIL)
+		self:SetUser(nil)
 		gTerminal:ClearConsole(self)
 	end
 
@@ -131,9 +133,9 @@ if SERVER then
 		if IsValid(user) and user:Alive() then
 			local dist = user:GetPos():DistToSqr(self:GetPos())
 			if not self:GetActive() or dist > 9216 then --96
+				self:SetUser(nil)
 				net.Start("gT_EndTyping")
 				net.Send(user)
-				self:SetUser(nil)
 			end
 		end
 	end
@@ -141,7 +143,6 @@ else
 	function ENT:Initialize()
 		self.consoleText = ""
 		self.consoleStory = {}
-		self.AsyncKeys = {}
 		self.colors = table.Copy(GT_colors)
 		gTerminal[self:EntIndex()] = {}
 	end

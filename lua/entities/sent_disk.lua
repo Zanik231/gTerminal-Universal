@@ -4,8 +4,7 @@ ENT.Type = "anim"
 ENT.Base = "base_anim"
 
 ENT.PrintName = "Disk"
-ENT.Author = "chupa"
-ENT.Purpose = "Base ore"
+ENT.Author = "Zanik"
 
 ENT.Spawnable = true
 ENT.Category = "gTerminal"

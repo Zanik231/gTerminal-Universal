@@ -23,139 +23,169 @@ local function utf8totable(str)
 end
 
 net.Receive("gT_AddLine", function(length)
-    local ent = net.ReadEntity()
-    if not IsValid(ent) then return end
+	local ent = net.ReadEntity()
+	if not IsValid(ent) then return end
+	local text = net.ReadString()
 
-    local text = net.ReadString()
-    
-    -- ЛОГИКА ЦВЕТА: Читаем флаг и определяем, индекс это или RGB объект
-    local isCustom = net.ReadBool()
-    local colorData
-    if isCustom then
-        colorData = net.ReadColor()
-    else
-        colorData = net.ReadUInt(8)
-    end
+	local isCustom = net.ReadBool()
+	local colorData
+	if isCustom then
+		colorData = net.ReadColor()
+	else
+		colorData = net.ReadUInt(8)
+	end
 
-    local position = net.ReadInt(16)
-    local xposition = net.ReadInt(7)
-    
-    local index = ent:EntIndex()
-    local maxChars = ent.maxChars or 50
-    local maxLines = ent.maxLines or 24
+	local position = net.ReadInt(16)
+	local xposition = net.ReadInt(7)
+	local index = ent:EntIndex()
+	local maxChars = ent.maxChars or 50
+	local maxLines = ent.maxLines or 24
+	if not gTerminal[index] then gTerminal[index] = {} end
+	
+	gTerminal[index].cursorX = gTerminal[index].cursorX or 1
+	gTerminal[index].cursorY = gTerminal[index].cursorY or 1
+	gTerminal[index].pendingNewLine = gTerminal[index].pendingNewLine or false
 
-    if not gTerminal[index] then gTerminal[index] = {} end
+	if isCustom then
+		gTerminal[index].currentColor = colorData
+	elseif colorData and colorData > 0 then
+		gTerminal[index].currentColor = colorData
+	end
 
-    -- Инициализация переменных состояния
-    gTerminal[index].cursorX = gTerminal[index].cursorX or 1
-    gTerminal[index].cursorY = gTerminal[index].cursorY or 1
-    gTerminal[index].pendingNewLine = gTerminal[index].pendingNewLine or false
-    
-    -- Установка текущего цвета (может быть числом или объектом Color)
-    if isCustom then
-        gTerminal[index].currentColor = colorData
-    elseif colorData and colorData > 0 then
-        gTerminal[index].currentColor = colorData
-    end
-    gTerminal[index].currentColor = gTerminal[index].currentColor or GT_COL_MSG
+	gTerminal[index].currentColor = gTerminal[index].currentColor or GT_COL_MSG
+	local function createLine()
+		if #gTerminal[index] >= maxLines then table.remove(gTerminal[index], 1) end
+		local newLine = {}
+		for i = 1, maxChars do
+			newLine[i] = {
+				char = " ",
+				col = gTerminal[index].currentColor
+			}
+		end
 
-    -- Функция создания новой строки
-    local function createLine()
-        if #gTerminal[index] >= maxLines then table.remove(gTerminal[index], 1) end
-        local newLine = {}
-        for i = 1, maxChars do
-            newLine[i] = {
-                char = " ",
-                col = gTerminal[index].currentColor
-            }
-        end
+		table.insert(gTerminal[index], newLine)
+		gTerminal[index].cursorY = #gTerminal[index]
+		gTerminal[index].cursorX = 1
+		gTerminal[index].pendingNewLine = false
+		return gTerminal[index][gTerminal[index].cursorY]
+	end
 
-        table.insert(gTerminal[index], newLine)
-        gTerminal[index].cursorY = #gTerminal[index]
-        gTerminal[index].cursorX = 1
-        gTerminal[index].pendingNewLine = false
-        return gTerminal[index][gTerminal[index].cursorY]
-    end
+	if gTerminal[index].pendingNewLine and position <= 0 then createLine() end
+	local line
+	if position == -1 then
+		line = createLine()
+	else
+		local targetY = (position == 0) and gTerminal[index].cursorY or position
+		targetY = math.Clamp(targetY, 1, maxLines)
+		if #gTerminal[index] < targetY then
+			for i = #gTerminal[index] + 1, targetY do
+				createLine()
+			end
+		end
 
-    -- ПРОВЕРКА ОТЛОЖЕННОГО ПЕРЕНОСА
-    if gTerminal[index].pendingNewLine and position <= 0 then createLine() end
+		line = gTerminal[index][targetY]
+		gTerminal[index].cursorY = targetY
+		if xposition >= 0 then
+			gTerminal[index].cursorX = (xposition == 0) and 1 or xposition
+			gTerminal[index].pendingNewLine = false
+		end
+	end
 
-    local line
-    if position == -1 then
-        line = createLine()
-    else
-        local targetY = (position == 0) and gTerminal[index].cursorY or position
-        targetY = math.Clamp(targetY, 1, maxLines)
-        
-        if #gTerminal[index] < targetY then
-            for i = #gTerminal[index] + 1, targetY do
-                createLine()
-            end
-        end
+	if text == "" then return end
+	local chars = utf8totable(text)
+	for i = 1, #chars do
+		local char = chars[i]
+		if char == "\b" then
+			gTerminal[index].cursorX = math.max(1, gTerminal[index].cursorX - 1)
+			if line then
+				line[gTerminal[index].cursorX] = {
+					char = " ",
+					col = gTerminal[index].currentColor
+				}
+			end
+		elseif char == "\n" then
+			if position <= 0 then
+				gTerminal[index].pendingNewLine = true
+				if i < #chars then line = createLine() end
+			end
+		elseif char == "\t" then
+			for t = 1, 4 do
+				if gTerminal[index].cursorX > maxChars then line = createLine() end
+				if line then
+					line[gTerminal[index].cursorX] = {
+						char = " ",
+						col = gTerminal[index].currentColor
+					}
 
-        line = gTerminal[index][targetY]
-        gTerminal[index].cursorY = targetY
-        
-        if xposition >= 0 then
-            gTerminal[index].cursorX = (xposition == 0) and 1 or xposition
-            gTerminal[index].pendingNewLine = false
-        end
-    end
+					gTerminal[index].cursorX = gTerminal[index].cursorX + 1
+				end
+			end
+		else
+			-- Автоперенос по ширине
+			if gTerminal[index].cursorX > maxChars then
+				if position <= 0 then
+					line = createLine()
+				else
+					break
+				end
+			end
 
-    if text == "" then return end
+			if line then
+				line[gTerminal[index].cursorX] = {
+					char = char,
+					col = gTerminal[index].currentColor -- Index or color
+				}
 
-    local chars = utf8totable(text)
-    for i = 1, #chars do
-        local char = chars[i]
-        
-        if char == "\b" then
-            gTerminal[index].cursorX = math.max(1, gTerminal[index].cursorX - 1)
-            if line then
-                line[gTerminal[index].cursorX] = {
-                    char = " ",
-                    col = gTerminal[index].currentColor
-                }
-            end
-        elseif char == "\n" then
-            if position <= 0 then
-                gTerminal[index].pendingNewLine = true
-                if i < #chars then line = createLine() end
-            end
-        elseif char == "\t" then
-            for t = 1, 4 do
-                if gTerminal[index].cursorX > maxChars then line = createLine() end
-                if line then
-                    line[gTerminal[index].cursorX] = {
-                        char = " ",
-                        col = gTerminal[index].currentColor
-                    }
-                    gTerminal[index].cursorX = gTerminal[index].cursorX + 1
-                end
-            end
-        else
-            -- Автоперенос по ширине
-            if gTerminal[index].cursorX > maxChars then
-                if position <= 0 then
-                    line = createLine()
-                else
-                    break 
-                end
-            end
-
-            if line then
-                line[gTerminal[index].cursorX] = {
-                    char = char,
-                    col = gTerminal[index].currentColor -- Здесь сохраняется либо индекс, либо Color()
-                }
-                gTerminal[index].cursorX = gTerminal[index].cursorX + 1
-            end
-        end
-    end
+				gTerminal[index].cursorX = gTerminal[index].cursorX + 1
+			end
+		end
+	end
 end)
 
-net.Receive("gT_StartAsyncKey", function()
-	local ent = net.ReadEntity()
-	gTerminal[ent:EntIndex()] = {}
+local as_keys = {}
+local asp_keys = {}
+local key_changed = false
+net.Receive("gT_AsyncKeyPacket", function()
+	local type = net.ReadUInt(2)
+	if type == 0 then
+		local ent = net.ReadEntity()
+		as_keys = net.ReadTable(true)
+		key_changed = true
+		hook.Remove("Tick", "GT_TICK_HOOK")
+		hook.Add("Tick", "GT_TICK_HOOK", function()
+			if !IsValid(ent) then
+				as_keys = {}
+				asp_keys = {}
+				key_changed = false
+				hook.Remove("Tick", "GT_TICK_HOOK")
+				return
+			end
+			local asp_keys_bitmask = 0
+			for i = 1, #as_keys do
+				local key = as_keys[i]
+				local is_key_down = input.IsKeyDown(key)
+				key_changed = key_changed or asp_keys[key] ~= is_key_down
+				asp_keys_bitmask = is_key_down and (asp_keys_bitmask + 2 ^ (i - 1)) or asp_keys_bitmask
+				asp_keys[key] = is_key_down
+			end
+
+			if key_changed then
+				key_changed = false
+				net.Start("gT_SendAsyncKeyTable")
+				net.WriteEntity(ent)
+				net.WriteUInt(asp_keys_bitmask, 32)
+				net.SendToServer()
+			end
+		end)
+	elseif type == 1 then
+		as_keys[#as_keys + 1] = net.ReadUInt(8)
+		key_changed = true
+	elseif type == 2 then
+		as_keys = {}
+		asp_keys = {}
+		key_changed = false
+		hook.Remove("Tick", "GT_TICK_HOOK")
+	end
 end)
 
 net.Receive("gT_ClsScreen", function()
@@ -182,7 +212,7 @@ net.Receive("gT_ActiveConsole", function()
 				local caretPos = gT_TextEntry:GetCaretPos()
 				local len = utf8.len(text)
 				if len > maxChars then
-					entity.consoleCaretPos = math.max(0, caretPos - (len - maxChars+2))
+					entity.consoleCaretPos = math.max(0, caretPos - (len - maxChars + 2))
 				else
 					entity.consoleCaretPos = caretPos
 				end
@@ -201,8 +231,8 @@ net.Receive("gT_ActiveConsole", function()
 			local maxChars = entity.maxChars
 			local len = utf8.len(text)
 			if len > maxChars then
-				entity.consoleText = utf8.sub(text, len - maxChars+3)
-				entity.consoleCaretPos = math.max(0, caretPos - (len - maxChars+2))
+				entity.consoleText = utf8.sub(text, len - maxChars + 3)
+				entity.consoleCaretPos = math.max(0, caretPos - (len - maxChars + 2))
 			else
 				entity.consoleText = text
 				entity.consoleCaretPos = caretPos
@@ -212,18 +242,19 @@ net.Receive("gT_ActiveConsole", function()
 		end
 
 		gT_TextEntry.OnEnter = function(textEntry)
-			local text = util.Compress(tostring(textEntry:GetValue()))
+			local str = textEntry:GetValue()
+			local text = util.Compress(tostring(str))
 			net.Start("gT_EndConsole")
 			net.WriteEntity(entity)
 			net.WriteUInt(#text, 16)
-    		net.WriteData(text, #text)
+			net.WriteData(text, #text)
 			net.SendToServer()
-			if text ~= "" then
+			if str ~= "" then
 				entity.consoleText = ""
 				textEntry:SetText("")
 				textEntry:SetCaretPos(0)
-				table.RemoveByValue(entity.consoleStory, text)
-				entity.consoleStory[#entity.consoleStory + 1] = text
+				table.RemoveByValue(entity.consoleStory, str)
+				entity.consoleStory[#entity.consoleStory + 1] = str
 				if #entity.consoleStory > 10 then table.remove(entity.consoleStory, 1) end
 				ind = #entity.consoleStory + 1
 			end
@@ -240,7 +271,6 @@ net.Receive("gT_ActiveConsole", function()
 						local maxChars = entity.maxChars
 						if utf8.len(entity.consoleStory[ind]) > maxChars then offset = textEntry:GetCaretPos() - maxChars - 3 end
 						entity.consoleText = utf8.sub(entity.consoleStory[ind], offset)
-						
 						changeCaret()
 					elseif keyCode == KEY_DOWN and ind < #entity.consoleStory then
 						local offset = 0
@@ -250,7 +280,6 @@ net.Receive("gT_ActiveConsole", function()
 						local maxChars = entity.maxChars
 						if utf8.len(entity.consoleStory[ind]) > maxChars then offset = textEntry:GetCaretPos() - maxChars - 3 end
 						entity.consoleText = utf8.sub(entity.consoleStory[ind], offset)
-
 						changeCaret()
 					end
 				end
@@ -263,9 +292,17 @@ end)
 
 net.Receive("gT_EndTyping", function(length)
 	local client = LocalPlayer()
-	if not IsValid(client.gT_TextEntry) then return end
-	client.gT_TextEntry:Remove()
-	if IsValid(client.gT_Entity) then client.gT_Entity.consoleText = "" end
+	hook.Remove("Tick", "GT_TICK_HOOK")
+	as_keys = {}
+	asp_keys = {}
+	key_changed = false
+	if IsValid(client.gT_TextEntry) then client.gT_TextEntry:Remove() end
+	
+	local gt_entity = client.gT_Entity
+	if IsValid(gt_entity) then
+		gt_entity.consoleText = ""
+		client.gT_Entity = nil
+	end
 end)
 
 net.Receive("gT_ChangeBackgroundColor", function()
@@ -307,4 +344,4 @@ net.Receive("gT_EmitSound", function()
 	timer.Simple(duration, function() entity:StopSound(snd_name) end)
 end)
 
-MsgC(Color(179, 255, 0), "gTerminal: Universal loaded!\n")
+MsgC(Color(179, 255, 0), "gTerminal: Universal client-side loaded!\n")

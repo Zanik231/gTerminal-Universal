@@ -16,6 +16,9 @@ util.AddNetworkString("gT_ChangeBackgroundColor")
 util.AddNetworkString("gT_ChangeForegroundColor")
 util.AddNetworkString("gT_EmitSound")
 
+util.AddNetworkString("gT_AsyncKeyPacket")
+util.AddNetworkString("gT_SendAsyncKeyTable")
+
 gTerminal = gTerminal or {}
 gTerminal.os = gTerminal.os or {}
 
@@ -141,14 +144,25 @@ function gTerminal:GetInput(entity, Callback)
 	entity.inputCallback = Callback
 end
 
+net.Receive("gT_SendAsyncKeyTable", function(length, client)
+	local ent = net.ReadEntity()
+	local asp_keys_bitmask = net.ReadUInt(32)
+	local as_keys = ent.AsyncKeys
+	local asp_keys = ent.AsyncKeysPressed
+
+	for i = 1, #as_keys do
+		asp_keys[i] = tobool(bit.band(asp_keys_bitmask, bit.lshift(1, i-1)))
+	end
+end)
+
 net.Receive("gT_EndConsole", function(length, client)
 	local entity = net.ReadEntity()
 	local text = util.Decompress(net.ReadData(net.ReadUInt(16)))
 
 	if (IsValid(entity) and entity.GetUser and IsValid( entity:GetUser() ) and entity:GetUser() == client) then
 		if (text == "") then
-			entity:SetUser(nil)
 
+			entity:SetUser(nil)
 			net.Start("gT_EndTyping")
 			net.Send(client)
 
@@ -158,6 +172,7 @@ net.Receive("gT_EndConsole", function(length, client)
 			entity:InputHandler()
 			return
 		end
+		--Standart gTerminal input handler
 		if ( entity.password and !client["pass_authed_"..index] ) then
 			if (text == entity.password) then
 				client["pass_authed_"..index] = true
@@ -190,7 +205,7 @@ net.Receive("gT_EndConsole", function(length, client)
 					if (text) then
 						gTerminal:Broadcast(entity, text, GT_COL_CMD)
 					end
-					local success, value = pcall(system[command].Callback, client, entity, str, text)
+					local _, value = pcall(system[command].Callback, client, entity, str, text)
 					if (value) then
 						gTerminal:Broadcast(entity, value, GT_COL_ERR)
 					end
@@ -230,4 +245,4 @@ ALL_OS_INIT()
 concommand.Add("gterminal_reload_lua_files", function() if CLIENT then return end ALL_OS_INIT() end)
 
 -- hook.Add('LoadGModSave', 'GterminalReload', function() timer.Simple(0.5, ALL_OS_INIT) end)
-MsgC(Color(0, 255, 0), "Initialized gTerminalUNI!\n")
+MsgC(Color(0, 255, 0), "gTerminal: Universal server-side loaded!\n")
