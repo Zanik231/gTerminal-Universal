@@ -73,6 +73,7 @@ if SERVER then
 		self:SetInputMode(GT_INPUT_NIL)
 		net.Start("gT_EndTyping")
 		net.Send(self:GetUser())
+		self:SetUser(nil)
 		gTerminal:ClearConsole(self)
 	end
 
